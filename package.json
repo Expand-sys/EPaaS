@@ -1,0 +1,44 @@
+{
+  "dependencies": {
+    "@mgcrea/fastify-session": "^0.14.1",
+    "dotenv": "^8.2.0",
+    "fastify": "^3.18.0",
+    "fastify-cookie": "^5.3.1",
+    "fastify-flash": "^2.0.2",
+    "fastify-formbody": "^5.0.0",
+    "fastify-plugin": "^3.0.0",
+    "fastify-secure-session": "^2.3.1",
+    "fastify-static": "^4.2.2",
+    "fastify-tls-keygen": "^1.1.0",
+    "got": "^11.8.2",
+    "https": "^1.0.0",
+    "path": "^0.12.7",
+    "pino-pretty": "^5.0.2",
+    "point-of-view": "^4.15.0",
+    "pug": "^3.0.2",
+    "ssh2": "1.5.0",
+    "url": "^0.11.0",
+    "uuid": "^7.0.3"
+  },
+  "name": "epaas",
+  "description": "This is a Front End for EntireTwix's CCcash API, it allows regular users to access the banks features and do what they like without having to know code or http requests.",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Expand-sys/ccashfrontend.git"
+  },
+  "author": "Expand",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Expand-sys/ccashfrontend/issues"
+  },
+  "homepage": "https://github.com/Expand-sys/ccashfrontend#readme",
+  "engines": {
+    "node": "17.x"
+  },
+  "build": {},
+  "scripts": {
+    "test": "node index.js"
+  }
+}

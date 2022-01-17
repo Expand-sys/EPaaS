@@ -1,0 +1,18 @@
+extends layout
+
+
+block content
+  .container
+    h1 Welcome to CCashBank Front End SETUP
+    .card
+      form(method='POST', action='/setup')
+        label BANKAPIURL:
+        input.form-control(name='url', type='url')
+        label SSL enabled on front end? leave unchecked if unsure:
+        .form-check
+          input.form-check-input(name='secure', type='checkbox')
+        br
+        
+        input.btn.btn-primary(type='submit',value='Submit')
+        br
+        br
