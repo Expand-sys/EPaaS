@@ -54,6 +54,7 @@ function validate(req, res, next) {
 }
 
 function sendCommand(command) {
+  let output;
   const conn = new Client();
   conn
     .on("ready", () => {
@@ -62,17 +63,18 @@ function sendCommand(command) {
         if (err) throw err;
         stream
           .on("close", (code, signal) => {
-            console.log(
-              "Stream :: close :: code: " + code + ", signal: " + signal
-            );
+            //console.log(
+            //  "Stream :: close :: code: " + code + ", signal: " + signal
+            //);
             conn.end();
           })
           .on("data", data => {
-            console.log("STDOUT: " + data);
-            return data;
+            //console.log("STDOUT: " + data);
+            return `${data} \n`;
           })
           .stderr.on("data", data => {
-            console.log("STDERR: " + data);
+            //console.log("STDERR: " + data);
+            return `${data} \n`;
           });
       });
     })
@@ -113,29 +115,18 @@ fastify.get("/", async function(req, res) {
   req.session.set("errors", "");
   if (process.env.SETUP == false || !process.env.SETUP) {
     res.view("setup");
-  } else {
-    let checkalive;
-    try {
-      checkalive = await sendCommand("version");
-    } catch (e) {
-      console.log(e);
-    } finally {
-      if (checkalive) {
-        alive = true;
-      } else {
-        alive = false;
-      }
-    }
-
-    res.view("index", {
-      user: req.session.get("user"),
-      admin: req.session.get("admin"),
-      alive: alive,
-      url: process.env.DUKKUHOST,
-      errors: errors,
-      successes: successes
-    });
   }
+  let alive = await sendCommand("version");
+  console.log(alive);
+
+  res.view("index", {
+    user: req.session.get("user"),
+    admin: req.session.get("admin"),
+    alive: alive,
+    url: process.env.DUKKUHOST,
+    errors: errors,
+    successes: successes
+  });
 });
 fastify.get(
   "/main",
