@@ -11,7 +11,6 @@ const fastifyFlash = require("fastify-flash");
 
 const path = require("path");
 const got = require("got");
-const url = require("url");
 const { Client } = require("ssh2");
 const fs = require("fs");
 

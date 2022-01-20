@@ -9,7 +9,6 @@
     "fastify-plugin": "^3.0.0",
     "fastify-secure-session": "^2.3.1",
     "fastify-static": "^4.2.2",
-    "fastify-tls-keygen": "^1.1.0",
     "got": "^11.8.2",
     "https": "^1.0.0",
     "path": "^0.12.7",
@@ -17,11 +16,10 @@
     "point-of-view": "^4.15.0",
     "pug": "^3.0.2",
     "ssh2": "1.5.0",
-    "url": "^0.11.0",
     "uuid": "^7.0.3"
   },
   "name": "epaas",
-  "description": "This is a Front End for EntireTwix's CCcash API, it allows regular users to access the banks features and do what they like without having to know code or http requests.",
+  "description": "Expand's Platform As A Service",
   "version": "1.0.0",
   "main": "index.js",
   "repository": {
