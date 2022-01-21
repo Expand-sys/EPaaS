@@ -3,13 +3,21 @@ const path = require("path");
 var pug = require("pug");
 
 const got = require("got");
-function validate(req, res, next) {
-  if (!req.session.get("user")) {
+async function validate(req, res, done) {
+  let test = req.session.get("token");
+  console.log(`test output ${test}`);
+  const level = this.level.authdb;
+  console.log("here");
+  let userdb = await level.get(req.session.get("user"));
+  console.log(`userdb ${userdb}`);
+  if (test != userdb) {
+    req.session.delete();
+    req.session.set("errors", "BACK FROM WHENCE YOU CAME");
     res.redirect("/login");
-  } else {
-    next();
   }
+  done(); // pass an error if the authentication fails
 }
+
 const api = process.env.BANKAPIURL;
 
 module.exports = function (fastify, opts, done) {
@@ -19,16 +27,8 @@ module.exports = function (fastify, opts, done) {
       preValidation: [validate],
     },
     async function (req, res) {
-      let checkalive = await got(`${api}../properties`, {
-        headers: {
-          Accept: "application/json",
-        },
-      });
-      if (checkalive) {
-        alive = true;
-      } else {
-        alive = false;
-      }
+      let alive = await sendCommand("version");
+
       let successes = req.session.get("successes");
       req.session.set("successes", "");
       let errors = req.session.get("errors");
@@ -37,8 +37,8 @@ module.exports = function (fastify, opts, done) {
         errors: errors,
         successes: successes,
         user: req.session.get("user"),
-        admin: req.session.get("admin"),
-        alive: true,
+        admin: admintest(req.session.get("user")),
+        alive: alive,
       });
     }
   );
@@ -49,10 +49,8 @@ module.exports = function (fastify, opts, done) {
       preValidation: [validate],
     },
     async function (req, res) {
-
       let { attempt, new_pass, password2 } = req.body;
       let patch;
-
 
       if (attempt == undefined) {
         attempt = "";
@@ -62,25 +60,11 @@ module.exports = function (fastify, opts, done) {
       } else if (new_pass != password2) {
         req.session.set("errors", "Passwords don't match");
         res.redirect("/settings");
-      } else if (new_pass.length < 6) {
-        req.session.set("errors", "Password must be at least 6 characters");
-        res.redirect("/settings");
       } else {
         try {
           let name = req.session.get("user");
-          let auth = btoa(`${name}:${attempt}`);
-          auth = `Basic ${auth}`;
-          patch = await got.patch(`${api}user/change_password`, {
-            headers: {
-              Authorization: auth,
-              Accept: "application/json",
-            },
-            json: {
-              pass: new_pass,
-            },
-          });
         } catch (e) {
-          console.log(e)
+          console.log(e);
           req.session.set("errors", `${e.response.body}`);
           console.log(e.response.body);
         }
@@ -107,7 +91,6 @@ module.exports = function (fastify, opts, done) {
       preValidation: [validate],
     },
     async function (req, res) {
-
       let { password, password2 } = req.body;
       let del;
       if (!password || !password2) {

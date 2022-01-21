@@ -16,10 +16,9 @@ html
               a.navbar-brand(href='/')
                 img(src="/CCashLogo3.png" style="width:75px; height:74px")
             .col 
-              div.nav-item(style="padding:5px;")
-                if alive
+              #monitor.nav-item(style="padding:5px")
                   p.text-white Server is Online
-                if !alive 
+              #monitordead.nav-item(style="padding:5px")
                   p(style="color: red;") Server is offline
         button.navbar-toggler(type='button', data-toggle='collapse', data-target='#navbars', aria-controls='navbars', aria-expanded='false', aria-label='Toggle navigation')
           span.navbar-toggler-icon
@@ -39,7 +38,7 @@ html
                   a.nav-link(href='/BankF').text-white Bank
                 li.nav-item
                   a.nav-link(href='/settings').text-white Settings
-                if admin == 204
+                if admin
                   li.nav-item
                     a.nav-link(href='/admin').text-white Admin
     .container
@@ -57,5 +56,7 @@ html
     script(src="https://code.jquery.com/jquery-3.6.0.slim.min.js" integrity="sha256-u7e5khyithlIdTpu22PHhENmPcRdFiHRjhAuHcs05RI="
     crossorigin="anonymous")
     script(src='/js/main.js')
+    script(src="/socket.io/socket.io.js")
+    script(src='/js/monitor.js')
     script(src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.min.js", integrity="sha384-QJHtvGhmr9XOIpI6YVutG+2QOK9T+ZnN4kzFN1RtK3zEFEIsxhlmWl5/YESvpZ13", crossorigin="anonymous")
     script(src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js", integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p", crossorigin="anonymous")
