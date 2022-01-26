@@ -14,17 +14,16 @@ const got = require("got");
 const { Client } = require("ssh2");
 const fs = require("fs");
 const events = require("events");
-const { MongoClient } = require("mongodb");
 const uri = `mongodb+srv://${process.env.MONGODBUSR}:${process.env.MONGODBPW}@epaas.bfejg.mongodb.net/EPaaS?retryWrites=true&w=majority`;
-const client = new MongoClient(uri, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-});
 
-client.connect();
 
 fastify.register(require("fastify-jwt"), { secret: "supersecret" });
-fastify.register(require("fastify-leveldb"), { name: "authdb" });
+fastify.register(require("fastify-mongodb"), {
+  forceClose: true,
+  name: "authdb",
+  url: uri
+})
+
 fastify.register(require("fastify-auth"));
 fastify.register(require("fastify-formbody"));
 fastify.register(require("fastify-static"), {
@@ -59,7 +58,7 @@ fastify.register(require("fastify-socket.io"), {
 
 const dukku = `${process.env.DUKKUHOST}`;
 
-fastify.decorate("verifyJWTandLevelDB", verifyJWTandLevelDB);
+/*fastify.decorate("verifyJWTandLevelDB", verifyJWTandLevelDB);
 fastify.decorate("verifyUserAndPassword", verifyUserAndPassword);
 
 function verifyJWTandLevelDB(request, reply, done) {
@@ -99,12 +98,15 @@ function verifyJWTandLevelDB(request, reply, done) {
       done();
     }
   }
-}
+}*/
 
 async function verifypass(req, res, done) {
   let test = req.session.get("token");
-  const level = this.level.authdb;
-  let userdb = await level.get(req.session.get("user"));
+  const mongo = fastify.mongo.authdb.db.collection("users");
+  const user = req.session.get("user")
+  let userdb = await mongo.findOne({user}).token;
+  console.log(test)
+  console.log(userdb)
   if (test != userdb) {
     req.session.delete();
     req.session.set("errors", "BACK FROM WHENCE YOU CAME");
@@ -113,7 +115,7 @@ async function verifypass(req, res, done) {
   done(); // pass an error if the authentication fails
 }
 
-function verifyUserAndPassword(request, reply, done) {
+/*function verifyUserAndPassword(request, reply, done) {
   const level = this.level.authdb;
 
   if (!request.body || !request.body.user) {
@@ -136,9 +138,10 @@ function verifyUserAndPassword(request, reply, done) {
 
     done();
   }
-}
+}*/
 
 function validate(req, res, next) {
+  console.log(req.session.get("user"))
   if (req.session.get("user")) {
     next();
   } else {
@@ -305,10 +308,10 @@ fastify.route({
     req.log.info("Creating new user");
     if (req.body.password2 == req.body.password) {
       const token = fastify.jwt.sign(req.body);
-      fastify.level.authdb.put(req.body.user, token, onPut);
-      function onPut(err) {
-        if (err) return reply.send(err);
-      }
+      fastify.mongo.authdb.db.collection("users").insertOne({
+        user: req.body.user,
+        token: token
+      })
       req.log.info("User created");
       req.session.set("token", token);
       req.session.set("successes", "User Created!");
@@ -322,14 +325,19 @@ fastify.route({
 
 fastify.post("/login", async function (req, res) {
   const { user, password } = req.body;
-  const level = this.level.authdb;
-  let userdb = await level.get(req.body.user);
-  userdb = fastify.jwt.decode(userdb);
+  let userdb = await fastify.mongo.authdb.db.collection("users").findOne({user: user});
 
-  if (userdb.user == user && userdb.password == password) {
-    const token = await level.get(req.body.user);
+  let userdbtok = fastify.jwt.decode(userdb.token);
+  console.log(userdbtok)
+  console.log(password)
+  if (userdbtok.user == user && userdbtok.password == password) {
+    const token = await fastify.mongo.authdb.db.collection("users").findOne({user: user}).token;
     req.session.set("token", token);
-    req.session.set("user", req.body.user);
+    req.session.set("user", user);
+    console.log("verified")
+  } else {
+    req.session.set("errors", "Username or Password Wrong");
+    res.redirect("/login");
   }
   res.redirect("/main");
 });
@@ -367,8 +375,9 @@ fastify.get("/register", async function (req, res) {
   req.session.set("successes", "");
   let errors = req.session.get("errors");
   req.session.set("errors", "");
-  //let checkalive = await client.ping();
+
   let alive = await sendCommand("version");
+
   res.view("register", {
     successes: successes,
     errors: errors,
