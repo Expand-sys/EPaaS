@@ -105,8 +105,6 @@ async function verifypass(req, res, done) {
   const mongo = fastify.mongo.authdb.db.collection("users");
   const user = req.session.get("user")
   let userdb = await mongo.findOne({user}).token;
-  console.log(test)
-  console.log(userdb)
   if (test != userdb) {
     req.session.delete();
     req.session.set("errors", "BACK FROM WHENCE YOU CAME");
@@ -141,7 +139,6 @@ async function verifypass(req, res, done) {
 }*/
 
 function validate(req, res, next) {
-  console.log(req.session.get("user"))
   if (req.session.get("user")) {
     next();
   } else {
@@ -328,13 +325,10 @@ fastify.post("/login", async function (req, res) {
   let userdb = await fastify.mongo.authdb.db.collection("users").findOne({user: user});
 
   let userdbtok = fastify.jwt.decode(userdb.token);
-  console.log(userdbtok)
-  console.log(password)
   if (userdbtok.user == user && userdbtok.password == password) {
     const token = await fastify.mongo.authdb.db.collection("users").findOne({user: user}).token;
     req.session.set("token", token);
     req.session.set("user", user);
-    console.log("verified")
   } else {
     req.session.set("errors", "Username or Password Wrong");
     res.redirect("/login");
