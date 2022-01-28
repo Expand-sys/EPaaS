@@ -4,18 +4,30 @@ extends layout
 block content
   .container
     h1 Settings, logged in as: #{user}
+    br
+    br
+    .card.shadow
+      h4 Change PubKey
+      form(method='POST', action='/settings/pubkey')
+        #form-group
+          label PubKey:
+          textarea.form-control(name='pubkey',type='text' required)
+        br
+        input.btn.btn-primary(type='submit',value='Submit' required)
+    br
+    br
     .card.shadow
       h4 Change password
       form(method='POST', action='/settings/pass')
         #form-group
           label Current Password:
-          input.form-control(name='attempt', type='Password')
+          input.form-control(name='attempt', type='Password' required)
           label New Password:
-          input.form-control(name='new_pass',type='password')
+          input.form-control(name='password',type='password' required)
           label Confirm:
-          input.form-control(name='password2',type='password')
+          input.form-control(name='password2',type='password' required)
         br
-        input.btn.btn-primary(type='submit',value='Submit')
+        input.btn.btn-primary(type='submit',value='Submit' required)
     br
     br
     .card.shadow
@@ -24,8 +36,8 @@ block content
       form(method='POST', action='/settings/delete')
         #form-group
           label Current Password:
-          input.form-control(name='password',type='password')
+          input.form-control(name='password',type='password' required)
           label Confirm:
-          input.form-control(name='password2',type='password')
+          input.form-control(name='password2',type='password' required)
         br
         input.btn.btn-danger(type='submit',value='DELETE')

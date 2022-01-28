@@ -8,21 +8,21 @@ const fastify = require("fastify")({
 });
 
 const fastifyFlash = require("fastify-flash");
-
+const { v4: uuidv4 } = require("uuid");
 const path = require("path");
 const got = require("got");
 const { Client } = require("ssh2");
 const fs = require("fs");
 const events = require("events");
 const uri = `mongodb+srv://${process.env.MONGODBUSR}:${process.env.MONGODBPW}@epaas.bfejg.mongodb.net/EPaaS?retryWrites=true&w=majority`;
-
+const { exec, spawn } = require("child_process");
 
 fastify.register(require("fastify-jwt"), { secret: "supersecret" });
 fastify.register(require("fastify-mongodb"), {
   forceClose: true,
   name: "authdb",
-  url: uri
-})
+  url: uri,
+});
 
 fastify.register(require("fastify-auth"));
 fastify.register(require("fastify-formbody"));
@@ -58,53 +58,19 @@ fastify.register(require("fastify-socket.io"), {
 
 const dukku = `${process.env.DUKKUHOST}`;
 
-/*fastify.decorate("verifyJWTandLevelDB", verifyJWTandLevelDB);
-fastify.decorate("verifyUserAndPassword", verifyUserAndPassword);
-
-function verifyJWTandLevelDB(request, reply, done) {
-  const jwt = this.jwt;
-  const level = this.level.authdb;
-
-  if (request.body && request.body.failureWithReply) {
-    reply.code(401).send({ error: "Unauthorized" });
-    return done(new Error());
+function admintest(user) {
+  let admin = process.env.ADMINUSERNAME;
+  if (user == admin) {
+    return true;
   }
-
-  if (!request.raw.headers.auth) {
-    return done(new Error("Missing token header"));
-  }
-
-  jwt.verify(request.raw.headers.auth, onVerify);
-
-  function onVerify(err, decoded) {
-    if (err || !decoded.user || !decoded.password) {
-      return done(new Error("Token not valid"));
-    }
-
-    level.get(decoded.user, onUser);
-
-    function onUser(err, password) {
-      if (err) {
-        if (err.notFound) {
-          return done(new Error("Token not valid"));
-        }
-        return done(err);
-      }
-
-      if (!password || password !== decoded.password) {
-        return done(new Error("Token not valid"));
-      }
-
-      done();
-    }
-  }
-}*/
+  return false;
+}
 
 async function verifypass(req, res, done) {
   let test = req.session.get("token");
   const mongo = fastify.mongo.authdb.db.collection("users");
-  const user = req.session.get("user")
-  let userdb = await mongo.findOne({user}).token;
+  const user = req.session.get("user");
+  let userdb = await mongo.findOne({ user }).token;
   if (test != userdb) {
     req.session.delete();
     req.session.set("errors", "BACK FROM WHENCE YOU CAME");
@@ -113,40 +79,55 @@ async function verifypass(req, res, done) {
   done(); // pass an error if the authentication fails
 }
 
-/*function verifyUserAndPassword(request, reply, done) {
-  const level = this.level.authdb;
+fastify.ready().then(async () => {
+  fastify.io.on("connection", (socket) => {
+    socket.on("deploysend", async (data) => {
+      await sendCommand(`dokku apps:create ${data.appname}`);
+      const clone = await spawn(`git clone ${data.github} ${data.appname}`, {
+        cwd: "/home/harrison/nodejs/test/",
+        shell: true,
+        detached: false,
+      });
+      clone.stdout.on("data", (output) => {
+        fastify.io.emit("deployout", output.toString());
+        console.log(data.toString());
+      });
+      clone.stderr.on("data", (output) => {
+        fastify.io.emit("deployout", output.toString());
+        console.log(output.toString());
+      });
+      clone.on("exit", () => {
+        fastify.io.emit("deployout", "finished");
+        const remoteadd = exec(
+          `git remote add dokku dokku@${process.env.DUKKUHOST}:${data.appname}`,
+          {
+            cwd: `/home/harrison/nodejs/test/${data.appname}/`,
+            shell: true,
+            detached: true,
+          }
+        );
+        const deploy = spawn(`git push dokku main:master`, {
+          cwd: `/home/harrison/nodejs/test/${data.appname}`,
+          shell: true,
+          detached: true,
+        });
+        deploy.stdout.on("data", (output) => {
+          console.log(output.toString());
+          fastify.io.emit("deployout", output.toString());
+        });
+        deploy.stderr.on("data", (output) => {
+          fastify.io.emit("deployout", output.toString());
+          console.log(output.toString());
+        });
+        deploy.on("exit", () => {
+          fastify.io.emit("deployout", "finished");
+        });
+      });
+    });
+  });
+});
 
-  if (!request.body || !request.body.user) {
-    return done(new Error("Missing user in request body"));
-  }
-
-  level.get(request.body.user, onUser);
-
-  function onUser(err, password) {
-    if (err) {
-      if (err.notFound) {
-        return done(new Error("Password not valid"));
-      }
-      return done(err);
-    }
-
-    if (!password || password !== request.body.password) {
-      return done(new Error("Password not valid"));
-    }
-
-    done();
-  }
-}*/
-
-function validate(req, res, next) {
-  if (req.session.get("user")) {
-    next();
-  } else {
-    res.redirect("/login");
-  }
-}
-
-function sendCommand(command) {
+function sendCommand(command, sshkey) {
   let output;
   const conn = new Client();
   try {
@@ -177,7 +158,7 @@ function sendCommand(command) {
       .connect({
         host: `${process.env.DUKKUHOST}`,
         port: 22,
-        username: `dokku`,
+        username: `root`,
         privateKey: fs.readFileSync("/home/harrison/.ssh/id_rsa"),
       });
   } catch (err) {
@@ -215,8 +196,8 @@ fastify.get("/", async function (req, res) {
   if (process.env.SETUP == false || !process.env.SETUP) {
     res.view("setup");
   }
-  let alive = await sendCommand("version");
-
+  let alive = await sendCommand("dokku version");
+  console.log("test");
   res.view("index", {
     user: req.session.get("user"),
     admin: req.session.get("admin"),
@@ -236,9 +217,9 @@ fastify.get(
     req.session.set("successes", "");
     let errors = req.session.get("errors");
     req.session.set("errors", "");
-    let alive = await sendCommand("version");
+    let alive = await sendCommand("dokku version");
 
-    res.view("bankf", {
+    res.view("main", {
       user: req.session.get("user"),
       admin: admintest(req.session.get("user")),
       sucesses: successes,
@@ -247,44 +228,18 @@ fastify.get(
     });
   }
 );
-function admintest(user) {
-  let admin = process.env.ADMINUSERNAME;
-  if (user == admin) {
-    return true;
-  }
-  return false;
-}
 
 fastify.post(
-  "/sendfunds",
+  "/deploy",
   {
-    preValidation: [validate],
+    preValidation: [verifypass],
   },
   async function (req, res) {
-    let { amount, name, senderpass } = req.body;
+    let { github, appname } = req.body;
     req.session.set("errors", "");
     req.session.set("successes", "");
-    let result;
-    let auth = req.session.get("b64");
-    try {
-      result = await got.post(`${api}user/transfer`, {
-        headers: {
-          Authorization: auth,
-          Accept: "application/json",
-        },
-        json: {
-          name: name,
-          amount: parseInt(amount),
-        },
-      });
-    } catch (e) {
-      req.session.set("errors", `${e}`);
-    }
-    if (result) {
-      req.session.set("successes", "Transfer successful");
-      //post details
-    }
-    res.redirect("/BankF");
+
+    res.redirect("/main");
   }
 );
 
@@ -301,32 +256,53 @@ fastify.route({
       required: ["user", "password"],
     },
   },
-  handler: (req, reply) => {
+  handler: async (req, reply) => {
     req.log.info("Creating new user");
-    if (req.body.password2 == req.body.password) {
-      const token = fastify.jwt.sign(req.body);
-      fastify.mongo.authdb.db.collection("users").insertOne({
-        user: req.body.user,
-        token: token
-      })
-      req.log.info("User created");
-      req.session.set("token", token);
-      req.session.set("successes", "User Created!");
-      reply.redirect("/main");
-    } else {
-      req.session.set("errors", "Passwords dont match!");
+
+    if (
+      await fastify.mongo.authdb.db
+        .collection("users")
+        .findOne({ user: req.body.user })
+    ) {
+      req.session.set("errors", "User Already Exists");
       reply.redirect("/register");
+    } else {
+      if (req.body.password2 == req.body.password) {
+        let password = req.body.password;
+        const token = fastify.jwt.sign({ password });
+        let keyname = uuidv4();
+
+        fastify.mongo.authdb.db.collection("users").insertOne({
+          user: req.body.user,
+          token: token,
+          pubkey: req.body.pubkey,
+          pubkeyname: keyname,
+        });
+        await sendCommand(
+          `echo ${req.body.pubkey} | dokku ssh-keys:add ${keyname}`
+        );
+        req.log.info("User created");
+        req.session.set("token", token);
+        req.session.set("successes", "User Created!");
+        reply.redirect("/main");
+      } else {
+        req.session.set("errors", "Passwords dont match!");
+        reply.redirect("/register");
+      }
     }
   },
 });
 
 fastify.post("/login", async function (req, res) {
   const { user, password } = req.body;
-  let userdb = await fastify.mongo.authdb.db.collection("users").findOne({user: user});
-
-  let userdbtok = fastify.jwt.decode(userdb.token);
-  if (userdbtok.user == user && userdbtok.password == password) {
-    const token = await fastify.mongo.authdb.db.collection("users").findOne({user: user}).token;
+  let userdb = await fastify.mongo.authdb.db
+    .collection("users")
+    .findOne({ user: user });
+  let userdbpass = fastify.jwt.decode(userdb.token);
+  if (userdb.user == user && userdbpass.password == password) {
+    const token = await fastify.mongo.authdb.db
+      .collection("users")
+      .findOne({ user: user }).token;
     req.session.set("token", token);
     req.session.set("user", user);
   } else {
@@ -355,7 +331,7 @@ fastify.get("/login", async function (req, res) {
   let errors = req.session.get("errors");
   req.session.set("errors", "");
   //let checkalive = await client.ping();
-  let alive = await sendCommand("version");
+  let alive = await sendCommand("dokku version");
   res.view("login", {
     successes: successes,
     errors: errors,
@@ -370,7 +346,7 @@ fastify.get("/register", async function (req, res) {
   let errors = req.session.get("errors");
   req.session.set("errors", "");
 
-  let alive = await sendCommand("version");
+  let alive = await sendCommand("dokku version");
 
   res.view("register", {
     successes: successes,

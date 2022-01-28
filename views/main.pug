@@ -1,0 +1,81 @@
+extends layout
+
+
+block content
+  .container
+    h1 Welcome to the GUI Deployment interface #{user}
+    .card.shadow-lg
+      .row 
+        .col
+          h2 Deploy
+        .col
+          h2 Output
+      hr
+      .row 
+        .col-4
+          label App name(must be globally unique):
+          br
+          input.form-control-lg.shadow#appname(name='app', type='text')
+          br
+          br
+          label github link(or other git link):
+          br
+          input.form-control-lg.shadow#github(type="text" name="github" required)
+          br
+          br
+          button.btn.btn-primary(type="button" onclick="deploy()") Submit
+        .col-8
+          .card
+            .output#output(style="height:30vh")
+              ul#console
+                
+                
+    script(type='text/javascript' src='https://www.gstatic.com/charts/loader.js')
+    script(type='text/javascript').
+      
+      google.charts.load('current', {'packages':['corechart', 'line']});
+      google.charts.setOnLoadCallback(drawChart);
+      function drawChart() {
+        var data = google.visualization.arrayToDataTable([!{graphdata}]);
+
+        var options = {
+          title: 'Balance',
+          hAxis: {
+            title: 'Transaction', 
+            textPosition: 'out',
+            },
+          vAxis: {
+            title: 'Balance',
+            format: 'currency',
+            textPosition: 'out',
+            },
+          trendlines: {
+            0: {type: 'exponential', color: '#333', opacity: .5},
+            1: {type: 'linear', color: '#111', opacity: .3}
+          },
+          width: 680,
+          height: 350,
+        };
+        function resize () {
+          var chart = new google.visualization.LineChart(document.getElementById('chart_div'));
+          chart.draw(data, options);
+        }
+
+        window.onload = resize;
+        window.onresize = resize;
+        
+      }
+    script(type='text/javascript').
+      function resize () {
+        var chart = new google.visualization.LineChart(document.getElementById('chart_div'));
+        chart.draw(data, options);
+      }
+      var nav = document.querySelector('.nav-link');
+      nav.addEventListener('click', function(e) {
+        // Event delegation - make sure it was one of the tab nav items that was clicked
+        if (e.target) {
+            resize();
+          // Call the redraw function for the charts
+        }
+      });
+    br

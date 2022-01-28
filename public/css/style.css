@@ -134,3 +134,16 @@ $w: Min(10em, 100%);
 #navbars {
   flex-grow: 0;
 }
+
+.output {
+  display: block;
+  border: 0px solid red;
+  padding: 5px;
+  margin-top: 5px;
+  width: 100%;
+  height: 100px;
+  overflow-y: scroll;
+}
+button {
+  padding: 15px;
+}

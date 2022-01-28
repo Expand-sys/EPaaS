@@ -6,11 +6,13 @@ block content
     form(method='POST', action='/register')
       #form-group
         label Username:
-        input.form-control(name='user', type='name')
+        input.form-control(name='user', type='name' required)
         label Password:
-        input.form-control(name='password',type='password')
+        input.form-control(name='password',type='password' required)
         label Confirm Password:
-        input.form-control(name='password2',type='password')
+        input.form-control(name='password2',type='password' required)
+        label SSH PUB Key 
+        textarea.form-control(name='pubkey',type='password' required)
       br
       input.btn.btn-primary(type='submit',value='Submit')
 
