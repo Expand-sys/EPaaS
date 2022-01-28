@@ -120,11 +120,12 @@ fastify.ready().then(async () => {
           console.log(output.toString());
         });
         deploy.on("exit", () => {
-          const user = req.session.get("user");
-          let entry = fastify.authdb.db
+          const update = {
+            $push: { apps: data.appname },
+          };
+          fastify.mongo.authdb.db
             .collections("users")
-            .findOne({ user: user });
-          entry.apps;
+            .updateOne({ user: data.user }, update);
           fastify.io.emit("deployout", "Complete");
         });
       });

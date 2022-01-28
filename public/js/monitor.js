@@ -18,12 +18,15 @@ socket.on("deployout", function (data) {
   console.log(data.toString());
 });
 
-const button = document.getElementById("deploy");
-
 function deploy() {
+  const user = document.getElementById("submit").value;
   const github = document.getElementById("github").value;
   const appname = document.getElementById("appname").value;
-  socket.emit("deploysend", { github: github, appname: appname });
+  socket.emit("deploysend", {
+    github: github,
+    appname: appname,
+    session: user,
+  });
 }
 
 function updateScroll() {

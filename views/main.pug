@@ -23,7 +23,7 @@ block content
           input.form-control-lg.shadow#github(type="text" name="github" required)
           br
           br
-          button.btn.btn-primary(type="button" onclick="deploy()") Submit
+          button.btn.btn-primary#submit(type="button" onclick="deploy()" value=user) Submit
         .col-8
           .card
             .output#output(style="height:30vh")
