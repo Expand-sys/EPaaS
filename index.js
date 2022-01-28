@@ -56,7 +56,7 @@ fastify.register(require("fastify-socket.io"), {
   // put your options here
 });
 
-const dukku = `${process.env.DUKKUHOST}`;
+const dukku = `${process.env.DOKKUHOST}`;
 
 function admintest(user) {
   let admin = process.env.ADMINUSERNAME;
@@ -99,7 +99,7 @@ fastify.ready().then(async () => {
       clone.on("exit", () => {
         fastify.io.emit("deployout", "finished");
         const remoteadd = exec(
-          `git remote add dokku dokku@${process.env.DUKKUHOST}:${data.appname}`,
+          `git remote add dokku dokku@${process.env.DOKKUHOST}:${data.appname}`,
           {
             cwd: `/home/harrison/nodejs/test/${data.appname}/`,
             shell: true,
@@ -156,7 +156,7 @@ function sendCommand(command, sshkey) {
         });
       })
       .connect({
-        host: `${process.env.DUKKUHOST}`,
+        host: `${process.env.DOKKUHOST}`,
         port: 22,
         username: `root`,
         privateKey: fs.readFileSync("/home/harrison/.ssh/id_rsa"),
@@ -172,12 +172,12 @@ fastify.post("/setup", async function (req, res) {
   if (secure) {
     process.env.SECURE = true;
   }
-  process.env.DUKKUHOST = url;
+  process.env.DOKKUHOST = url;
   fs.rmSync(`${root}/.env`);
   fs.writeFileSync(
     `${root}/.env`,
-    "DUKKUHOST=" +
-      process.env.DUKKUHOST +
+    "DOKKUHOST=" +
+      process.env.DOKKUHOST +
       "\n" +
       "SECURE=" +
       process.env.SECURE +
@@ -202,7 +202,7 @@ fastify.get("/", async function (req, res) {
     user: req.session.get("user"),
     admin: req.session.get("admin"),
     alive: alive,
-    url: process.env.DUKKUHOST,
+    url: process.env.DOKKUHOST,
     errors: errors,
     successes: successes,
   });
