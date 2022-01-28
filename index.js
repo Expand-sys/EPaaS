@@ -120,7 +120,12 @@ fastify.ready().then(async () => {
           console.log(output.toString());
         });
         deploy.on("exit", () => {
-          fastify.io.emit("deployout", "finished");
+          const user = req.session.get("user");
+          let entry = fastify.authdb.db
+            .collections("users")
+            .findOne({ user: user });
+          entry.apps;
+          fastify.io.emit("deployout", "Complete");
         });
       });
     });
@@ -277,6 +282,7 @@ fastify.route({
           token: token,
           pubkey: req.body.pubkey,
           pubkeyname: keyname,
+          apps: [],
         });
         await sendCommand(
           `echo ${req.body.pubkey} | dokku ssh-keys:add ${keyname}`

@@ -82,6 +82,7 @@ module.exports = function (fastify, opts, done) {
       let errors = req.session.get("errors");
       req.session.set("errors", "");
       res.view("settings", {
+        apps: apps,
         errors: errors,
         successes: successes,
         user: req.session.get("user"),
@@ -97,9 +98,6 @@ module.exports = function (fastify, opts, done) {
       preValidation: [validate],
     },
     async function (req, res) {
-      let { attempt, password, password2 } = req.body;
-      let patch;
-
       if (password != password2) {
         req.session.set("errors", "Passwords don't match");
         res.redirect("/settings");
