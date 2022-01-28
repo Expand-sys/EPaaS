@@ -92,7 +92,7 @@ module.exports = function (fastify, opts, done) {
   );
 
   fastify.post(
-    "/pass",
+    "/stopapp",
     {
       preValidation: [validate],
     },

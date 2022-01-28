@@ -316,6 +316,8 @@ fastify.register(require("./routes/admin"), { prefix: "/admin" });
 
 fastify.register(require("./routes/settings"), { prefix: "/settings" });
 
+fastify.register(require("./routes/apps"), { prefix: "/apps" });
+
 fastify.get("/logout", async function (req, res) {
   let successes = req.session.get("successes");
   let errors = req.session.get("errors");
