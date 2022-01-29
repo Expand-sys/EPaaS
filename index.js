@@ -145,7 +145,7 @@ fastify.ready().then(async () => {
   });
 });
 async function cleanup(appname){
-  fs.rmDirSync(`/home/harrison/nodejs/test/${appname}`, {
+  fs.rmdirSync(`/home/harrison/nodejs/test/${appname}`, {
     recursive: true,
   })
 }
