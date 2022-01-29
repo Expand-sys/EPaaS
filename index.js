@@ -81,6 +81,19 @@ async function verifypass(req, res, done) {
 
 fastify.ready().then(async () => {
   fastify.io.on("connection", (socket) => {
+    socket.on("destroy",async (data) => {
+      await sendCommand(`dokku --force apps:destroy ${data.app}`)
+      console.log(data)
+      const update = {
+        $pull: {apps: data.app}
+      }
+      console.log(await fastify.mongo.authdb.db.collection("users").findOneAndUpdate({ user: data.user }, update));
+    })
+
+
+
+
+
     socket.on("deploysend", async (data) => {
       await sendCommand(`dokku apps:create ${data.appname}`);
       const clone = await spawn(`git clone ${data.github} ${data.appname}`, {
@@ -123,15 +136,20 @@ fastify.ready().then(async () => {
           const update = {
             $push: { apps: data.appname },
           };
-          fastify.mongo.authdb.db
-            .collections("users")
-            .updateOne({ user: data.user }, update);
+          fastify.mongo.authdb.db.collection("users").findOneAndUpdate({ user: data.session }, update, { upsert: true });
           fastify.io.emit("deployout", "Complete");
+          cleanup(data.appname);
         });
       });
     });
   });
 });
+async function cleanup(appname){
+  fs.rmDirSync(`/home/harrison/nodejs/test/${appname}`, {
+    recursive: true,
+  })
+}
+
 
 function sendCommand(command, sshkey) {
   let output;
@@ -202,6 +220,7 @@ fastify.get("/", async function (req, res) {
   if (process.env.SETUP == false || !process.env.SETUP) {
     res.view("setup");
   }
+
   let alive = await sendCommand("dokku version");
   console.log("test");
   res.view("index", {

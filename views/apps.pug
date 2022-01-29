@@ -1,0 +1,15 @@
+extends layout
+
+
+block content
+  .container
+    h1 Welcome to the GUI Deployment interface #{user}
+    .card.shadow-lg
+      for app in apps
+        .card 
+          .row 
+            .col 
+              p #{app} yes
+            .col
+              button.btn.btn-danger#destroy(type="button" onclick="destroy()" value=app) Destroy
+    br

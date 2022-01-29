@@ -76,13 +76,15 @@ module.exports = function (fastify, opts, done) {
     },
     async function (req, res) {
       let alive = await sendCommand("dokku version");
-
+      let user = req.session.get("user")
+      const apps = await fastify.mongo.authdb.db.collection("users").findOne({user: user})
+      console.log(apps)
       let successes = req.session.get("successes");
       req.session.set("successes", "");
       let errors = req.session.get("errors");
       req.session.set("errors", "");
-      res.view("settings", {
-        apps: apps,
+      res.view("apps", {
+        apps: apps.apps,
         errors: errors,
         successes: successes,
         user: req.session.get("user"),

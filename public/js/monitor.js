@@ -17,9 +17,22 @@ socket.on("deployout", function (data) {
   document.getElementById("console").appendChild(node);
   console.log(data.toString());
 });
+var user = document.getElementById("user").value
+
+function destroy() {
+  const user = document.getElementById("user").value
+  console.log(user)
+  const app = document.getElementById("destroy").value;
+  socket.emit("destroy", {
+    user: user,
+    app: app,
+  })
+
+}
+
 
 function deploy() {
-  const user = document.getElementById("submit").value;
+  const user = document.getElementById("deploy").value;
   const github = document.getElementById("github").value;
   const appname = document.getElementById("appname").value;
   socket.emit("deploysend", {
@@ -28,9 +41,3 @@ function deploy() {
     session: user,
   });
 }
-
-function updateScroll() {
-  var element = document.getElementById("output");
-  element.scrollTop = element.scrollHeight;
-}
-setInterval(updateScroll, 50);
