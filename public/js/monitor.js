@@ -17,27 +17,50 @@ socket.on("deployout", function (data) {
   document.getElementById("console").appendChild(node);
   console.log(data.toString());
 });
-var user = document.getElementById("user").value
 
-function destroy() {
-  const user = document.getElementById("user").value
-  console.log(user)
-  const app = document.getElementById("destroy").value;
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+document.getElementById("ssl").addEventListener("change", function () {
+  document.getElementById("sslemail").required = this.checked;
+});
+
+async function destroy() {
+  const user = document.getElementById("user").value;
+  const app = event.target.value;
   socket.emit("destroy", {
     user: user,
     app: app,
-  })
-  setTimeout(() => {  reload() }, 2000);
+  });
+  await sleep(2000);
+  await location.reload();
 }
-
+async function togglessl() {
+  const user = document.getElementById("user").value;
+  const app = event.target.value;
+  socket.emit("togglessl", {
+    user: user,
+    app: app,
+  });
+  await sleep(2000);
+  await location.reload();
+}
 
 function deploy() {
   const user = document.getElementById("deploy").value;
   const github = document.getElementById("github").value;
   const appname = document.getElementById("appname").value;
+  const ssl = document.getElementById("ssl").checked;
+  const sslemail = document.getElementById("sslemail").value;
+  const restart = document.getElementById("restart").checked;
+  console.log(restart);
+  console.log(ssl);
   socket.emit("deploysend", {
     github: github,
     appname: appname,
     session: user,
+    restart: restart,
+    ssl: ssl,
   });
 }

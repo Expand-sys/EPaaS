@@ -81,20 +81,33 @@ async function verifypass(req, res, done) {
 
 fastify.ready().then(async () => {
   fastify.io.on("connection", (socket) => {
-    socket.on("destroy",async (data) => {
-      await sendCommand(`dokku --force apps:destroy ${data.app}`)
-      console.log(data)
+    socket.on("togglessl", async (data) => {
+      console.log(sendCommand(`dokku letsencrypt:list`));
+      //await sendCommand(`dokku letsencrypt:enable ${data.appname}`);
+    });
+
+    socket.on("destroy", async (data) => {
+      await sendCommand(`dokku --force apps:destroy ${data.app}`);
+      console.log(data);
       const update = {
-        $pull: {apps: data.app}
-      }
-      console.log(await fastify.mongo.authdb.db.collection("users").findOneAndUpdate({ user: data.user }, update));
-    })
-
-
-
-
+        $pull: { apps: data.app },
+      };
+      console.log(
+        await fastify.mongo.authdb.db
+          .collection("users")
+          .findOneAndUpdate({ user: data.user }, update)
+      );
+    });
 
     socket.on("deploysend", async (data) => {
+      try {
+        fs.rmSync(`/home/harrison/nodejs/test/${data.appname}`, {
+          recursive: true,
+        });
+      } catch (e) {
+        console.log(e);
+      }
+
       await sendCommand(`dokku apps:create ${data.appname}`);
       const clone = await spawn(`git clone ${data.github} ${data.appname}`, {
         cwd: "/home/harrison/nodejs/test/",
@@ -136,20 +149,33 @@ fastify.ready().then(async () => {
           const update = {
             $push: { apps: data.appname },
           };
-          fastify.mongo.authdb.db.collection("users").findOneAndUpdate({ user: data.session }, update, { upsert: true });
+          let userdb = fastify.mongo.authdb.db
+            .collection("users")
+            .findOne({ user: data.session });
+          sendCommand(`dokku acl:add ${data.appname} ${userdb.pubkeyname}`);
+          fastify.mongo.authdb.db
+            .collection("users")
+            .findOneAndUpdate({ user: data.session }, update, { upsert: true });
           fastify.io.emit("deployout", "Complete");
+          if (data.ssl) {
+            sendCommand(`dokku letsencrypt:enable ${data.appname}`);
+          }
+
+          if (data.restart) {
+            fastify.io.emit("deployout", "restarting");
+            sendCommand(`dokku ps:restart ${data.appname}`);
+          }
           cleanup(data.appname);
         });
       });
     });
   });
 });
-async function cleanup(appname){
-  fs.rmdirSync(`/home/harrison/nodejs/test/${appname}`, {
+async function cleanup(appname) {
+  fs.rmSync(`/home/harrison/nodejs/test/${appname}`, {
     recursive: true,
-  })
+  });
 }
-
 
 function sendCommand(command, sshkey) {
   let output;

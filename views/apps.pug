@@ -9,7 +9,9 @@ block content
         .card 
           .row 
             .col 
-              p #{app} yes
+              p #{app}
+            .col 
+              button.btn.btn-warning#togglessl(type="button" onclick="togglessl()" value=app) ToggleSSL
             .col
               button.btn.btn-danger#destroy(type="button" onclick="destroy()" value=app) Destroy
     br
