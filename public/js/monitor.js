@@ -27,7 +27,7 @@ function destroy() {
     user: user,
     app: app,
   })
-
+  setTimeout(() => {  reload() }, 2000);
 }
 
 
