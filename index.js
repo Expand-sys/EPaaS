@@ -100,74 +100,82 @@ fastify.ready().then(async () => {
     });
 
     socket.on("deploysend", async (data) => {
-      try {
-        fs.rmSync(`/home/harrison/nodejs/test/${data.appname}`, {
-          recursive: true,
-        });
-      } catch (e) {
-        console.log(e);
-      }
+      if (!data.appname || !data.github) {
+        socket.emit("mainerrors");
+      } else if (data.ssl && !data.sslemail) {
+        socket.emit("mainerrors");
+      } else {
+        try {
+          fs.rmSync(`/home/harrison/nodejs/test/${data.appname}`, {
+            recursive: true,
+          });
+        } catch (e) {
+          console.log(e);
+        }
 
-      await sendCommand(`dokku apps:create ${data.appname}`);
-      const clone = await spawn(`git clone ${data.github} ${data.appname}`, {
-        cwd: "/home/harrison/nodejs/test/",
-        shell: true,
-        detached: false,
-      });
-      clone.stdout.on("data", (output) => {
-        fastify.io.emit("deployout", output.toString());
-        console.log(data.toString());
-      });
-      clone.stderr.on("data", (output) => {
-        fastify.io.emit("deployout", output.toString());
-        console.log(output.toString());
-      });
-      clone.on("exit", () => {
-        fastify.io.emit("deployout", "finished");
-        const remoteadd = exec(
-          `git remote add dokku dokku@${process.env.DOKKUHOST}:${data.appname}`,
-          {
-            cwd: `/home/harrison/nodejs/test/${data.appname}/`,
+        await sendCommand(`dokku apps:create ${data.appname}`);
+        const clone = await spawn(`git clone ${data.github} ${data.appname}`, {
+          cwd: "/home/harrison/nodejs/test/",
+          shell: true,
+          detached: false,
+        });
+        clone.stdout.on("data", (output) => {
+          fastify.io.emit("deployout", output.toString());
+          console.log(data.toString());
+        });
+        clone.stderr.on("data", (output) => {
+          fastify.io.emit("deployout", output.toString());
+          console.log(output.toString());
+        });
+        clone.on("exit", () => {
+          fastify.io.emit("deployout", "finished");
+          const remoteadd = exec(
+            `git remote add dokku dokku@${process.env.DOKKUHOST}:${data.appname}`,
+            {
+              cwd: `/home/harrison/nodejs/test/${data.appname}/`,
+              shell: true,
+              detached: true,
+            }
+          );
+          const deploy = spawn(`git push dokku main:master`, {
+            cwd: `/home/harrison/nodejs/test/${data.appname}`,
             shell: true,
             detached: true,
-          }
-        );
-        const deploy = spawn(`git push dokku main:master`, {
-          cwd: `/home/harrison/nodejs/test/${data.appname}`,
-          shell: true,
-          detached: true,
-        });
-        deploy.stdout.on("data", (output) => {
-          console.log(output.toString());
-          fastify.io.emit("deployout", output.toString());
-        });
-        deploy.stderr.on("data", (output) => {
-          fastify.io.emit("deployout", output.toString());
-          console.log(output.toString());
-        });
-        deploy.on("exit", () => {
-          const update = {
-            $push: { apps: data.appname },
-          };
-          let userdb = fastify.mongo.authdb.db
-            .collection("users")
-            .findOne({ user: data.session });
-          sendCommand(`dokku acl:add ${data.appname} ${userdb.pubkeyname}`);
-          fastify.mongo.authdb.db
-            .collection("users")
-            .findOneAndUpdate({ user: data.session }, update, { upsert: true });
-          fastify.io.emit("deployout", "Complete");
-          if (data.ssl) {
-            sendCommand(`dokku letsencrypt:enable ${data.appname}`);
-          }
+          });
+          deploy.stdout.on("data", (output) => {
+            console.log(output.toString());
+            fastify.io.emit("deployout", output.toString());
+          });
+          deploy.stderr.on("data", (output) => {
+            fastify.io.emit("deployout", output.toString());
+            console.log(output.toString());
+          });
+          deploy.on("exit", () => {
+            const update = {
+              $push: { apps: data.appname },
+            };
+            let userdb = fastify.mongo.authdb.db
+              .collection("users")
+              .findOne({ user: data.session });
+            sendCommand(`dokku acl:add ${data.appname} ${userdb.pubkeyname}`);
+            fastify.mongo.authdb.db
+              .collection("users")
+              .findOneAndUpdate({ user: data.session }, update, {
+                upsert: true,
+              });
+            fastify.io.emit("deployout", "Complete");
+            if (data.ssl) {
+              sendCommand(`dokku letsencrypt:enable ${data.appname}`);
+            }
 
-          if (data.restart) {
-            fastify.io.emit("deployout", "restarting");
-            sendCommand(`dokku ps:restart ${data.appname}`);
-          }
-          cleanup(data.appname);
+            if (data.restart) {
+              fastify.io.emit("deployout", "restarting");
+              sendCommand(`dokku ps:restart ${data.appname}`);
+            }
+            cleanup(data.appname);
+          });
         });
-      });
+      }
     });
   });
 });
@@ -258,6 +266,18 @@ fastify.get("/", async function (req, res) {
     successes: successes,
   });
 });
+fastify.get(
+  "/mainerrors",
+  {
+    preValidation: [verifypass],
+  },
+  async function (req, res) {
+    req.session.set("successes", "");
+    req.session.set("errors", "Please fill in fields");
+    res.redirect("main");
+  }
+);
+
 fastify.get(
   "/main",
   {
