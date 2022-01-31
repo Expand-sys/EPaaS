@@ -20,6 +20,9 @@ socket.on("deployout", function (data) {
 socket.on("mainerrors", function (data) {
   window.location.replace("/mainerrors");
 });
+socket.on("trickery", function (data) {
+  window.location.replace("/trickery");
+});
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -39,7 +42,18 @@ async function destroy() {
   await sleep(2000);
   await location.reload();
 }
-async function togglessl() {
+async function disablessl() {
+  const user = document.getElementById("user").value;
+  const app = event.target.value;
+  socket.emit("disablessl", {
+    email: sslemail,
+    user: user,
+    app: app,
+  });
+  await sleep(2000);
+  await location.reload();
+}
+async function enablessl() {
   const user = document.getElementById("user").value;
   const app = event.target.value;
   socket.emit("enablessl", {

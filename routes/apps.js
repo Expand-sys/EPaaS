@@ -17,16 +17,26 @@ function admintest(user) {
 
 module.exports = function (fastify, opts, done) {
   async function validate(req, res, done) {
-    let test = req.session.get("token");
-    const mongo = fastify.mongo.authdb.db.collection("users");
-    const user = req.session.get("user");
-    let userdb = await mongo.findOne({ user }).token;
-    if (test != userdb) {
+    let test;
+    let user;
+    let userdb;
+    try {
+      test = req.session.get("token");
+      user = req.session.get("user");
+      const mongo = fastify.mongo.authdb.db.collection("users");
+      userdb = await mongo.findOne({ user });
+      userdb = userdb.token;
+    } catch (e) {
+      console.log(e);
+    }
+
+    if (test == undefined || test != userdb) {
       req.session.delete();
       req.session.set("errors", "BACK FROM WHENCE YOU CAME");
       res.redirect("/login");
+      throw "fail";
     }
-    done(); // pass an error if the authentication fails
+    done();
   }
 
   function sendCommand(command) {
@@ -76,14 +86,19 @@ module.exports = function (fastify, opts, done) {
     },
     async function (req, res) {
       let alive = await sendCommand("dokku version");
-      let user = req.session.get("user")
-      const apps = await fastify.mongo.authdb.db.collection("users").findOne({user: user})
-      console.log(apps)
+      let user = req.session.get("user");
+      const apps = await fastify.mongo.authdb.db
+        .collection("users")
+        .findOne({ user: user });
+      console.log(apps);
       let successes = req.session.get("successes");
       req.session.set("successes", "");
       let errors = req.session.get("errors");
       req.session.set("errors", "");
+      secret = fastify.jwt.sign({ user });
+
       res.view("apps", {
+        secret: secret,
         apps: apps.apps,
         errors: errors,
         successes: successes,
@@ -94,77 +109,5 @@ module.exports = function (fastify, opts, done) {
     }
   );
 
-  fastify.post(
-    "/stopapp",
-    {
-      preValidation: [validate],
-    },
-    async function (req, res) {
-      if (password != password2) {
-        req.session.set("errors", "Passwords don't match");
-        res.redirect("/settings");
-      } else {
-        let name = req.session.get("user");
-
-        const token = fastify.jwt.sign({ password });
-
-        console.log(
-          await fastify.mongo.authdb.db.collection("users").findOneAndUpdate(
-            {
-              user: name,
-            },
-            { $set: { token: token } },
-            { upsert: true }
-          )
-        );
-        req.session.delete();
-        req.session.set(
-          "successes",
-          "Change Password Successful, Please Login Again"
-        );
-        res.redirect("/login");
-      }
-    }
-  );
-
-  fastify.post(
-    "/pubkey",
-    {
-      preValidation: [validate],
-    },
-    async function (req, res) {
-      let { pubkey } = req.body;
-      const user = req.session.get("user");
-      const dbentry = await fastify.mongo.authdb.db
-        .collection("users")
-        .findOne({ user: user });
-
-      let name = req.session.get("user");
-
-      await fastify.mongo.authdb.db.collection("users").findOneAndUpdate(
-        {
-          user: name,
-        },
-        { $set: { pubkey: pubkey } },
-        { upsert: true }
-      );
-      console.log(dbentry.pubkeyname);
-
-      sendCommand(`dokku ssh-keys:remove "${dbentry.pubkeyname}"`);
-      sendCommand(
-        `echo "${pubkey}" | dokku ssh-keys:add "${dbentry.pubkeyname}"`
-      );
-      req.session.set("successes", "Public key changed");
-      res.redirect("/settings");
-    }
-  );
-
-  fastify.post(
-    "/delete",
-    {
-      preValidation: [validate],
-    },
-    async function (req, res) {}
-  );
   done();
 };

@@ -11,7 +11,8 @@ block content
             .col 
               p #{app}
             .col 
-              button.btn.btn-warning#togglessl(type="button" onclick="togglessl()" value=app) ToggleSSL
+              button.btn.btn-warning#enablessl(type="button" onclick="enablessl()" value=app) Enable SSL
+              button.btn.btn-warning#disablessl(type="button" onclick="disablessl()" value=app) Disable SSL
             .col
               button.btn.btn-danger#destroy(type="button" onclick="destroy()" value=app) Destroy
     br

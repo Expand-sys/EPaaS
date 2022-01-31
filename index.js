@@ -32,13 +32,10 @@ fastify.register(require("fastify-static"), {
 });
 
 fastify.register(require("fastify-secure-session"), {
-  // the name of the session cookie, defaults to 'session'
   cookieName: "session",
-  // adapt this to point to the directory where secret-key is located
   key: fs.readFileSync(path.join(__dirname, "secret-key")),
   cookie: {
     path: "/",
-    // options for setCookie, see https://github.com/fastify/fastify-cookie
     secure: true,
     httpOnly: true,
     overwrite: true,
@@ -52,9 +49,7 @@ fastify.register(require("point-of-view"), {
   defaultContext: {},
   root: path.join(__dirname, "views"),
 });
-fastify.register(require("fastify-socket.io"), {
-  // put your options here
-});
+fastify.register(require("fastify-socket.io"), {});
 
 const dukku = `${process.env.DOKKUHOST}`;
 
@@ -67,127 +62,166 @@ function admintest(user) {
 }
 
 async function verifypass(req, res, done) {
-  let test = req.session.get("token");
-  const mongo = fastify.mongo.authdb.db.collection("users");
-  const user = req.session.get("user");
-  let userdb = await mongo.findOne({ user }).token;
-  if (test != userdb) {
+  let test;
+  let user;
+  let userdb;
+  try {
+    test = req.session.get("token");
+    user = req.session.get("user");
+    const mongo = fastify.mongo.authdb.db.collection("users");
+    userdb = await mongo.findOne({ user });
+    userdb = userdb.token;
+  } catch (e) {
+    console.log(e);
+  }
+
+  if (test == undefined || test != userdb) {
     req.session.delete();
     req.session.set("errors", "BACK FROM WHENCE YOU CAME");
     res.redirect("/login");
+    throw "fail";
   }
-  done(); // pass an error if the authentication fails
+  done();
 }
 
 fastify.ready().then(async () => {
   fastify.io.on("connection", (socket) => {
     socket.on("enablessl", async (data) => {
-      console.log(sendCommand(`dokku letsencrypt:list`));
-      //await sendCommand(`dokku letsencrypt:enable ${data.appname}`);
+      const mongo = fastify.mongo.authdb.db.collection("users");
+      userdb = await mongo.findOne({ user });
+      if (data.token != userdb.token) {
+        fastify.io.emit("trickery");
+      } else {
+        await sendCommand(`dokku letsencrypt:enable ${data.appname}`);
+      }
+    });
+    socket.on("disablessl", async (data) => {
+      const mongo = fastify.mongo.authdb.db.collection("users");
+      userdb = await mongo.findOne({ user });
+      if (data.token != userdb.token) {
+        fastify.io.emit("trickery");
+      } else {
+        await sendCommand(`dokku letsencrypt:disable ${data.appname}`);
+      }
     });
 
     socket.on("destroy", async (data) => {
-      await sendCommand(`dokku --force apps:destroy ${data.app}`);
-      console.log(data);
-      const update = {
-        $pull: { apps: data.app },
-      };
-      console.log(
-        await fastify.mongo.authdb.db
-          .collection("users")
-          .findOneAndUpdate({ user: data.user }, update)
-      );
+      const mongo = fastify.mongo.authdb.db.collection("users");
+      userdb = await mongo.findOne({ user });
+      if (data.token != userdb.token) {
+        fastify.io.emit("trickery");
+      } else {
+        await sendCommand(`dokku --force apps:destroy ${data.app}`);
+        console.log(data);
+        const update = {
+          $pull: { apps: data.app },
+        };
+        console.log(
+          await fastify.mongo.authdb.db
+            .collection("users")
+            .findOneAndUpdate({ user: data.user }, update)
+        );
+      }
     });
 
     socket.on("deploysend", async (data) => {
-      if (!data.appname || !data.github) {
-        socket.emit("mainerrors");
-      } else if (data.ssl && !data.sslemail && !data.domain) {
-        socket.emit("mainerrors");
+      const mongo = fastify.mongo.authdb.db.collection("users");
+      userdb = await mongo.findOne({ user });
+      if (data.token != userdb.token) {
+        fastify.io.emit("trickery");
       } else {
-        try {
-          fs.rmSync(`/home/harrison/nodejs/test/${data.appname}`, {
-            recursive: true,
-          });
-        } catch (e) {
-          console.log(e);
-        }
+        if (!data.appname || !data.github) {
+          socket.emit("mainerrors");
+        } else if (data.ssl && !data.sslemail && !data.domain) {
+          socket.emit("mainerrors");
+        } else {
+          try {
+            fs.rmSync(`/home/harrison/nodejs/test/${data.appname}`, {
+              recursive: true,
+            });
+          } catch (e) {
+            console.log(e);
+          }
 
-        await sendCommand(`dokku apps:create ${data.appname}`);
-        const clone = await spawn(`git clone ${data.github} ${data.appname}`, {
-          cwd: "/home/harrison/nodejs/test/",
-          shell: true,
-          detached: false,
-        });
-        clone.stdout.on("data", (output) => {
-          fastify.io.emit("deployout", output.toString());
-          console.log(data.toString());
-        });
-        clone.stderr.on("data", (output) => {
-          fastify.io.emit("deployout", output.toString());
-          console.log(output.toString());
-        });
-        clone.on("exit", () => {
-          fastify.io.emit("deployout", "finished");
-          const remoteadd = exec(
-            `git remote add dokku dokku@${process.env.DOKKUHOST}:${data.appname}`,
+          await sendCommand(`dokku apps:create ${data.appname}`);
+          const clone = await spawn(
+            `git clone ${data.github} ${data.appname}`,
             {
-              cwd: `/home/harrison/nodejs/test/${data.appname}/`,
+              cwd: "/home/harrison/nodejs/test/",
               shell: true,
-              detached: true,
+              detached: false,
             }
           );
-          const deploy = spawn(`git push dokku main:master`, {
-            cwd: `/home/harrison/nodejs/test/${data.appname}`,
-            shell: true,
-            detached: true,
-          });
-          deploy.stdout.on("data", (output) => {
-            console.log(output.toString());
+          clone.stdout.on("data", (output) => {
             fastify.io.emit("deployout", output.toString());
+            console.log(data.toString());
           });
-          deploy.stderr.on("data", (output) => {
+          clone.stderr.on("data", (output) => {
             fastify.io.emit("deployout", output.toString());
             console.log(output.toString());
           });
-          deploy.on("exit", () => {
-            const update = {
-              $push: { apps: data.appname },
-            };
-            let userdb = fastify.mongo.authdb.db
-              .collection("users")
-              .findOne({ user: data.session });
-            sendCommand(`dokku acl:add ${data.appname} ${userdb.pubkeyname}`);
-            fastify.mongo.authdb.db
-              .collection("users")
-              .findOneAndUpdate({ user: data.session }, update, {
-                upsert: true,
-              });
-            fastify.io.emit("deployout", "Complete");
-            if (data.domain) {
-              sendCommand(`dokku domains:add ${data.appname} ${data.domain}`);
-              sendCommand(
-                `dokku domains:remove ${data.appname} ${data.appname}.epaas.cx`
-              );
-              fastify.io.emit(
-                "deployout",
-                `Please add a CNAME record from ${data.domain} to core.epaas.cx`
-              );
-            }
-            if (data.ssl) {
-              sendCommand(
-                `dokku config:set --no-restart ${data.appname} DOKKU_LETSENCRYPT_EMAIL=${data.sslemail}`
-              );
-              sendCommand(`dokku letsencrypt:enable ${data.appname}`);
-            }
+          clone.on("exit", () => {
+            fastify.io.emit("deployout", "finished");
+            const remoteadd = exec(
+              `git remote add dokku dokku@${process.env.DOKKUHOST}:${data.appname}`,
+              {
+                cwd: `/home/harrison/nodejs/test/${data.appname}/`,
+                shell: true,
+                detached: true,
+              }
+            );
+            const deploy = spawn(`git push dokku main:master`, {
+              cwd: `/home/harrison/nodejs/test/${data.appname}`,
+              shell: true,
+              detached: true,
+            });
+            deploy.stdout.on("data", (output) => {
+              console.log(output.toString());
+              fastify.io.emit("deployout", output.toString());
+            });
+            deploy.stderr.on("data", (output) => {
+              fastify.io.emit("deployout", output.toString());
+              console.log(output.toString());
+            });
+            deploy.on("exit", () => {
+              const update = {
+                $push: { apps: data.appname },
+              };
+              let userdb = fastify.mongo.authdb.db
+                .collection("users")
+                .findOne({ user: data.session });
+              sendCommand(`dokku acl:add ${data.appname} ${userdb.pubkeyname}`);
+              fastify.mongo.authdb.db
+                .collection("users")
+                .findOneAndUpdate({ user: data.session }, update, {
+                  upsert: true,
+                });
+              fastify.io.emit("deployout", "Complete");
+              if (data.domain) {
+                sendCommand(`dokku domains:add ${data.appname} ${data.domain}`);
+                sendCommand(
+                  `dokku domains:remove ${data.appname} ${data.appname}.epaas.cx`
+                );
+                fastify.io.emit(
+                  "deployout",
+                  `Please add a CNAME record from ${data.domain} to core.epaas.cx`
+                );
+              }
+              if (data.ssl) {
+                sendCommand(
+                  `dokku config:set --no-restart ${data.appname} DOKKU_LETSENCRYPT_EMAIL=${data.sslemail}`
+                );
+                sendCommand(`dokku letsencrypt:enable ${data.appname}`);
+              }
 
-            if (data.restart) {
-              fastify.io.emit("deployout", "restarting");
-              sendCommand(`dokku ps:restart ${data.appname}`);
-            }
-            cleanup(data.appname);
+              if (data.restart) {
+                fastify.io.emit("deployout", "restarting");
+                sendCommand(`dokku ps:restart ${data.appname}`);
+              }
+              cleanup(data.appname);
+            });
           });
-        });
+        }
       }
     });
   });
@@ -302,7 +336,6 @@ fastify.get(
     let errors = req.session.get("errors");
     req.session.set("errors", "");
     let alive = await sendCommand("dokku version");
-
     res.view("main", {
       user: req.session.get("user"),
       admin: admintest(req.session.get("user")),
@@ -385,9 +418,10 @@ fastify.post("/login", async function (req, res) {
     .findOne({ user: user });
   let userdbpass = fastify.jwt.decode(userdb.token);
   if (userdb.user == user && userdbpass.password == password) {
-    const token = await fastify.mongo.authdb.db
+    const db = await fastify.mongo.authdb.db
       .collection("users")
-      .findOne({ user: user }).token;
+      .findOne({ user: user });
+    const token = db.token;
     req.session.set("token", token);
     req.session.set("user", user);
   } else {
@@ -402,6 +436,11 @@ fastify.register(require("./routes/admin"), { prefix: "/admin" });
 fastify.register(require("./routes/settings"), { prefix: "/settings" });
 
 fastify.register(require("./routes/apps"), { prefix: "/apps" });
+
+fastify.get("/trickery", function (req, res) {
+  req.session.delete();
+  res.view("trickery");
+});
 
 fastify.get("/logout", async function (req, res) {
   let successes = req.session.get("successes");

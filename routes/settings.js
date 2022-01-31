@@ -17,16 +17,26 @@ function admintest(user) {
 
 module.exports = function (fastify, opts, done) {
   async function validate(req, res, done) {
-    let test = req.session.get("token");
-    const mongo = fastify.mongo.authdb.db.collection("users");
-    const user = req.session.get("user");
-    let userdb = await mongo.findOne({ user }).token;
-    if (test != userdb) {
+    let test;
+    let user;
+    let userdb;
+    try {
+      test = req.session.get("token");
+      user = req.session.get("user");
+      const mongo = fastify.mongo.authdb.db.collection("users");
+      userdb = await mongo.findOne({ user });
+      userdb = userdb.token;
+    } catch (e) {
+      console.log(e);
+    }
+
+    if (test == undefined || test != userdb) {
       req.session.delete();
       req.session.set("errors", "BACK FROM WHENCE YOU CAME");
       res.redirect("/login");
+      throw "fail";
     }
-    done(); // pass an error if the authentication fails
+    done();
   }
 
   function sendCommand(command) {
