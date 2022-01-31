@@ -42,7 +42,8 @@ async function destroy() {
 async function togglessl() {
   const user = document.getElementById("user").value;
   const app = event.target.value;
-  socket.emit("togglessl", {
+  socket.emit("enablessl", {
+    email: sslemail,
     user: user,
     app: app,
   });
@@ -55,6 +56,7 @@ function deploy() {
   const github = document.getElementById("github").value;
   const appname = document.getElementById("appname").value;
   const ssl = document.getElementById("ssl").checked;
+  const domain = document.getElementById("domain").value;
   const sslemail = document.getElementById("sslemail").value;
   const restart = document.getElementById("restart").checked;
   console.log(restart);
@@ -65,5 +67,7 @@ function deploy() {
     session: user,
     restart: restart,
     ssl: ssl,
+    domain: domain,
+    sslemail: sslemail,
   });
 }

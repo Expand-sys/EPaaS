@@ -81,7 +81,7 @@ async function verifypass(req, res, done) {
 
 fastify.ready().then(async () => {
   fastify.io.on("connection", (socket) => {
-    socket.on("togglessl", async (data) => {
+    socket.on("enablessl", async (data) => {
       console.log(sendCommand(`dokku letsencrypt:list`));
       //await sendCommand(`dokku letsencrypt:enable ${data.appname}`);
     });
@@ -102,7 +102,7 @@ fastify.ready().then(async () => {
     socket.on("deploysend", async (data) => {
       if (!data.appname || !data.github) {
         socket.emit("mainerrors");
-      } else if (data.ssl && !data.sslemail) {
+      } else if (data.ssl && !data.sslemail && !data.domain) {
         socket.emit("mainerrors");
       } else {
         try {
@@ -164,7 +164,20 @@ fastify.ready().then(async () => {
                 upsert: true,
               });
             fastify.io.emit("deployout", "Complete");
+            if (data.domain) {
+              sendCommand(`dokku domains:add ${data.appname} ${data.domain}`);
+              sendCommand(
+                `dokku domains:remove ${data.appname} ${data.appname}.epaas.cx`
+              );
+              fastify.io.emit(
+                "deployout",
+                `Please add a CNAME record from ${data.domain} to core.epaas.cx`
+              );
+            }
             if (data.ssl) {
+              sendCommand(
+                `dokku config:set --no-restart ${data.appname} DOKKU_LETSENCRYPT_EMAIL=${data.sslemail}`
+              );
               sendCommand(`dokku letsencrypt:enable ${data.appname}`);
             }
 
