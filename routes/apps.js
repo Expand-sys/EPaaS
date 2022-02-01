@@ -15,7 +15,7 @@ function admintest(user) {
   return false;
 }
 
-module.exports = function (fastify, opts, done) {
+module.exports = function(fastify, opts, done) {
   async function validate(req, res, done) {
     let test;
     let user;
@@ -55,12 +55,12 @@ module.exports = function (fastify, opts, done) {
                 );
                 conn.end();
               })
-              .on("data", (data) => {
+              .on("data", data => {
                 console.log("STDOUT: " + data);
                 fastify.io.emit("online");
                 fastify.io.emit("data", data);
               })
-              .stderr.on("data", (data) => {
+              .stderr.on("data", data => {
                 console.log("STDERR: " + data);
                 fastify.io.emit("offline");
                 fastify.io.emit("error", data);
@@ -71,7 +71,7 @@ module.exports = function (fastify, opts, done) {
           host: `${process.env.DOKKUHOST}`,
           port: 22,
           username: `root`,
-          privateKey: fs.readFileSync("/home/harrison/.ssh/id_rsa"),
+          privateKey: fs.readFileSync("/home/harrison/.ssh/id_rsa")
         });
     } catch (err) {
       console.log(err);
@@ -82,9 +82,9 @@ module.exports = function (fastify, opts, done) {
   fastify.get(
     "/",
     {
-      preValidation: [validate],
+      preValidation: [validate]
     },
-    async function (req, res) {
+    async function(req, res) {
       let alive = await sendCommand("dokku version");
       let user = req.session.get("user");
       const apps = await fastify.mongo.authdb.db
@@ -98,13 +98,13 @@ module.exports = function (fastify, opts, done) {
       secret = fastify.jwt.sign({ user });
 
       res.view("apps", {
-        secret: secret,
+        token: req.session.get("token"),
         apps: apps.apps,
         errors: errors,
         successes: successes,
         user: req.session.get("user"),
         admin: admintest(req.session.get("user")),
-        alive: alive,
+        alive: alive
       });
     }
   );
