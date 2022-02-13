@@ -343,7 +343,7 @@ function sendCommand(command, username) {
           host: `${process.env.DOKKUHOST}`,
           port: 22,
           username: `root`,
-          privateKey: fs.readFileSync("~/.ssh/id_rsa")
+          privateKey: fs.readFileSync("/home/epaas/.ssh/id_rsa")
         });
     } catch (err) {
       console.log(err);
