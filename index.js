@@ -215,7 +215,7 @@ fastify.ready().then(async () => {
           }
           await sendCommand(`dokku apps:create ${data.appname}`);
           const clone = await spawn(
-            `sh -c git clone ${data.github} ${data.appname}`,
+            `sh -c \'git clone ${data.github} ${data.appname}\'`,
             {
               cwd: "~",
               detached: false
