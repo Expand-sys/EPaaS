@@ -243,7 +243,7 @@ fastify.ready().then(async () => {
             const remoteadd = await exec(
               `git remote add dokku dokku@${process.env.DOKKUHOST}:${data.appname}`,
               {
-                cwd: `~/${data.appname}/`,
+                cwd: `/home/epaas/${data.appname}/`,
                 shell: true,
                 detached: true
               }
@@ -252,7 +252,7 @@ fastify.ready().then(async () => {
               `git`,
               ["push", "dokku", "main:master"],
               {
-                cwd: `~/${data.appname}/`,
+                cwd: `/home/epaas/${data.appname}/`,
                 detached: true
               }
             );
@@ -303,7 +303,7 @@ fastify.ready().then(async () => {
   });
 });
 async function cleanup(appname) {
-  fs.rmSync(`~/${appname}`, {
+  fs.rmSync(`/home/epaas/${appname}`, {
     recursive: true
   });
 }
