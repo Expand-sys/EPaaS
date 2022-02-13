@@ -217,7 +217,7 @@ fastify.ready().then(async () => {
           const clone = await spawn(
             `git clone ${data.github} ${data.appname}`,
             {
-              cwd: "~/",
+              cwd: "~",
               shell: true,
               detached: false
             }
