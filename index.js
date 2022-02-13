@@ -202,7 +202,7 @@ fastify.ready().then(async () => {
           socket.emit("mainerrors");
         } else {
           try {
-            fs.rmSync(`~/${data.appname}`, {
+            fs.rmSync(`/home/epaas/${data.appname}`, {
               recursive: true
             });
           } catch (e) {
