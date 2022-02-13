@@ -202,7 +202,7 @@ fastify.ready().then(async () => {
           socket.emit("mainerrors");
         } else {
           try {
-            fs.rmSync(`/home/harrison/nodejs/test/${data.appname}`, {
+            fs.rmSync(`~/${data.appname}`, {
               recursive: true
             });
           } catch (e) {
@@ -217,7 +217,7 @@ fastify.ready().then(async () => {
           const clone = await spawn(
             `git clone ${data.github} ${data.appname}`,
             {
-              cwd: "/home/harrison/nodejs/test/",
+              cwd: "~/",
               shell: true,
               detached: false
             }
@@ -243,13 +243,13 @@ fastify.ready().then(async () => {
             const remoteadd = await exec(
               `git remote add dokku dokku@${process.env.DOKKUHOST}:${data.appname}`,
               {
-                cwd: `/home/harrison/nodejs/test/${data.appname}/`,
+                cwd: `~/${data.appname}/`,
                 shell: true,
                 detached: true
               }
             );
             const deploy = await spawn(`git push dokku main:master`, {
-              cwd: `/home/harrison/nodejs/test/${data.appname}/`,
+              cwd: `~/${data.appname}/`,
               shell: true,
               detached: true
             });
@@ -300,7 +300,7 @@ fastify.ready().then(async () => {
   });
 });
 async function cleanup(appname) {
-  fs.rmSync(`/home/harrison/nodejs/test/${appname}`, {
+  fs.rmSync(`~/${appname}`, {
     recursive: true
   });
 }
