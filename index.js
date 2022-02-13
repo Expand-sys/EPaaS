@@ -190,7 +190,7 @@ fastify.ready().then(async () => {
       userdb = await mongo.findOne({ user });
       console.log(userdb);
       console.log(data.token);
-      if (userdb.apps.length() >= 4) {
+      if (userdb.apps.length >= 4) {
         socket.emit("toomanyapps");
       }
       if (data.token != userdb.token) {
