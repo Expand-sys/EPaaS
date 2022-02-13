@@ -14,7 +14,7 @@ html
           .row
             .col
               a.navbar-brand(href='/')
-                img(src="/CCashLogo3.png" style="width:75px; height:74px")
+                img(src="/EPaaS-logo.png" style="width:100px; height:100px")
             .col 
             
               #monitor.nav-item(style="padding:5px")
@@ -58,14 +58,12 @@ html
       if successes
         div(class="alert alert-success") #{successes}  
     br
-    br
     block content
     br
     hr
     
     script(src="https://code.jquery.com/jquery-3.6.0.slim.min.js" integrity="sha256-u7e5khyithlIdTpu22PHhENmPcRdFiHRjhAuHcs05RI="
     crossorigin="anonymous")
-    script(src='/js/main.js')
     script(src="/socket.io/socket.io.js")
     script(src='/js/monitor.js')
     script(src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.min.js", integrity="sha384-QJHtvGhmr9XOIpI6YVutG+2QOK9T+ZnN4kzFN1RtK3zEFEIsxhlmWl5/YESvpZ13", crossorigin="anonymous")

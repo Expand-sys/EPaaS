@@ -3,25 +3,30 @@ extends layout
 
 block content
   .container
-    h1 Welcome to the GUI Deployment interface #{user}
+    h1 App Management
     .card.shadow-lg
       for app in apps
         .card 
           .row 
-            .col 
-              p #{app}
-            .col
+            .col-2
+              .row
+                p App name: #{app}
+              .row 
+                a.btn.btn-info#logs(type="button" href="/apps/logs/" + app value=app) logs
+            .col-6
+            .col-2
               .row
                 button.btn.btn-success#startcontainer(type="button" onclick="startcontainer()" value=app) Start Container
               .row
                 button.btn.btn-danger#stopcontainer(type="button" onclick="stopcontainer()" value=app) Stop Container
               .row
                 button.btn.btn-info#restartcontainer(type="button" onclick="restartcontainer()" value=app) Restart Container
-            .col 
-              button.btn.btn-warning#enablessl(type="button" onclick="enablessl()" value=app) Enable SSL
-              button.btn.btn-warning#disablessl(type="button" onclick="disablessl()" value=app) Disable SSL
-            .col
-              button.btn.btn-danger#destroy(type="button" onclick="destroy()" value=app) Destroy
-            .col
-              a.btn.btn-info#logs(type="button" href="/apps/logs/" + app value=app) logs
+            .col-2
+              .row
+                button.btn.btn-warning#enablessl(type="button" onclick="enablessl()" value=app) Enable SSL
+              .row
+                button.btn.btn-warning#disablessl(type="button" onclick="disablessl()" value=app) Disable SSL
+              .row
+                button.btn.btn-danger#destroy(type="button" onclick="destroy()" value=app) Destroy
+        hr  
     br
