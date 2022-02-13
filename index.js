@@ -190,6 +190,9 @@ fastify.ready().then(async () => {
       userdb = await mongo.findOne({ user });
       console.log(userdb);
       console.log(data.token);
+      if (userdb.apps.length() >= 4) {
+        socket.emit("toomanyapps");
+      }
       if (data.token != userdb.token) {
         fastify.io.emit("trickery");
       } else {
@@ -399,6 +402,21 @@ fastify.get(
   async function(req, res) {
     req.session.set("successes", "");
     req.session.set("errors", "Please fill in fields");
+    res.redirect("main");
+  }
+);
+
+fastify.get(
+  "/toomanyapps",
+  {
+    preValidation: [verifypass]
+  },
+  async function(req, res) {
+    req.session.set("successes", "");
+    req.session.set(
+      "errors",
+      "Too many applications already on your account, Sorry!"
+    );
     res.redirect("main");
   }
 );

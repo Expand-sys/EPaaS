@@ -7,7 +7,9 @@ socket.on("deployout", function(data) {
   document.getElementById("console").appendChild(node);
   console.log(data.toString());
 });
-
+socket.on("toomanyapps", function(data) {
+  window.location.replace("/toomanyapps");
+});
 socket.on("mainerrors", function(data) {
   window.location.replace("/mainerrors");
 });
