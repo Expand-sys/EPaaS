@@ -248,10 +248,14 @@ fastify.ready().then(async () => {
                 detached: true
               }
             );
-            const deploy = await spawn(`git`, ["push dokku main:master"], {
-              cwd: `~/${data.appname}/`,
-              detached: true
-            });
+            const deploy = await spawn(
+              `git`,
+              ["push", "dokku", "main:master"],
+              {
+                cwd: `~/${data.appname}/`,
+                detached: true
+              }
+            );
             deploy.stdout.on("data", output => {
               console.log(output.toString());
               fastify.io.emit("deployout", output.toString());
