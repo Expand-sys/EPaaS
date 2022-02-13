@@ -216,7 +216,7 @@ fastify.ready().then(async () => {
           await sendCommand(`dokku apps:create ${data.appname}`);
           const clone = await spawn(
             `git`,
-            [`clone ${data.github} ${data.appname}`],
+            ["clone", data.github, data.appname],
             {
               cwd: "/home/epaas/",
               detached: false
