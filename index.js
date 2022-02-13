@@ -250,7 +250,6 @@ fastify.ready().then(async () => {
             );
             const deploy = await spawn(`git`, ["push dokku main:master"], {
               cwd: `~/${data.appname}/`,
-              shell: true,
               detached: true
             });
             deploy.stdout.on("data", output => {
