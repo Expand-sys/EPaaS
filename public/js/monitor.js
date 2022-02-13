@@ -1,4 +1,4 @@
-var socket = io("http://localhost:3000");
+var socket = io();
 
 socket.on("deployout", function(data) {
   const node = document.createElement("LI");
