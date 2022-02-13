@@ -248,7 +248,7 @@ fastify.ready().then(async () => {
                 detached: true
               }
             );
-            const deploy = await spawn(`git push dokku main:master`, {
+            const deploy = await spawn(`git`, ["push dokku main:master"], {
               cwd: `~/${data.appname}/`,
               shell: true,
               detached: true
