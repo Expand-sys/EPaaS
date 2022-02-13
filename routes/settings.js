@@ -7,6 +7,9 @@ const { Client } = require("ssh2");
 const fs = require("fs");
 
 const api = process.env.BANKAPIURL;
+const util = require("util");
+const execping = util.promisify(require("child_process").exec);
+
 function admintest(user) {
   let admin = process.env.ADMINUSERNAME;
   if (user == admin) {
@@ -15,7 +18,14 @@ function admintest(user) {
   return false;
 }
 
-module.exports = function (fastify, opts, done) {
+const ping = async host => {
+  const { stdout, stderr } = await execping(`ping -c 1 ${host}`);
+  if (!stderr) {
+    return true;
+  } else return false;
+};
+
+module.exports = function(fastify, opts, done) {
   async function validate(req, res, done) {
     let test;
     let user;
@@ -55,12 +65,12 @@ module.exports = function (fastify, opts, done) {
                 );
                 conn.end();
               })
-              .on("data", (data) => {
+              .on("data", data => {
                 console.log("STDOUT: " + data);
                 fastify.io.emit("online");
                 fastify.io.emit("data", data);
               })
-              .stderr.on("data", (data) => {
+              .stderr.on("data", data => {
                 console.log("STDERR: " + data);
                 fastify.io.emit("offline");
                 fastify.io.emit("error", data);
@@ -71,7 +81,7 @@ module.exports = function (fastify, opts, done) {
           host: `${process.env.DOKKUHOST}`,
           port: 22,
           username: `root`,
-          privateKey: fs.readFileSync("/home/harrison/.ssh/id_rsa"),
+          privateKey: fs.readFileSync("/home/harrison/.ssh/id_rsa")
         });
     } catch (err) {
       console.log(err);
@@ -82,10 +92,10 @@ module.exports = function (fastify, opts, done) {
   fastify.get(
     "/",
     {
-      preValidation: [validate],
+      preValidation: [validate]
     },
-    async function (req, res) {
-      let alive = await sendCommand("dokku version");
+    async function(req, res) {
+      let alive = await ping(`${process.env.DOKKUHOST}`);
 
       let successes = req.session.get("successes");
       req.session.set("successes", "");
@@ -96,7 +106,7 @@ module.exports = function (fastify, opts, done) {
         successes: successes,
         user: req.session.get("user"),
         admin: admintest(req.session.get("user")),
-        alive: alive,
+        alive: alive
       });
     }
   );
@@ -104,9 +114,9 @@ module.exports = function (fastify, opts, done) {
   fastify.post(
     "/pass",
     {
-      preValidation: [validate],
+      preValidation: [validate]
     },
-    async function (req, res) {
+    async function(req, res) {
       let { attempt, password, password2 } = req.body;
       let patch;
 
@@ -121,7 +131,7 @@ module.exports = function (fastify, opts, done) {
         console.log(
           await fastify.mongo.authdb.db.collection("users").findOneAndUpdate(
             {
-              user: name,
+              user: name
             },
             { $set: { token: token } },
             { upsert: true }
@@ -140,9 +150,9 @@ module.exports = function (fastify, opts, done) {
   fastify.post(
     "/pubkey",
     {
-      preValidation: [validate],
+      preValidation: [validate]
     },
-    async function (req, res) {
+    async function(req, res) {
       let { pubkey } = req.body;
       const user = req.session.get("user");
       const dbentry = await fastify.mongo.authdb.db
@@ -153,7 +163,7 @@ module.exports = function (fastify, opts, done) {
 
       await fastify.mongo.authdb.db.collection("users").findOneAndUpdate(
         {
-          user: name,
+          user: name
         },
         { $set: { pubkey: pubkey } },
         { upsert: true }
@@ -172,9 +182,9 @@ module.exports = function (fastify, opts, done) {
   fastify.post(
     "/delete",
     {
-      preValidation: [validate],
+      preValidation: [validate]
     },
-    async function (req, res) {}
+    async function(req, res) {}
   );
   done();
 };

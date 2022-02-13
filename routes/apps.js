@@ -7,6 +7,9 @@ const { Client } = require("ssh2");
 const fs = require("fs");
 
 const api = process.env.BANKAPIURL;
+const util = require("util");
+const execping = util.promisify(require("child_process").exec);
+
 function admintest(user) {
   let admin = process.env.ADMINUSERNAME;
   if (user == admin) {
@@ -14,6 +17,13 @@ function admintest(user) {
   }
   return false;
 }
+
+const ping = async host => {
+  const { stdout, stderr } = await execping(`ping -c 1 ${host}`);
+  if (!stderr) {
+    return true;
+  } else return false;
+};
 
 module.exports = function(fastify, opts, done) {
   async function validate(req, res, done) {
@@ -85,7 +95,7 @@ module.exports = function(fastify, opts, done) {
       preValidation: [validate]
     },
     async function(req, res) {
-      let alive = await sendCommand("dokku version");
+      let alive = await ping(`${process.env.DOKKUHOST}`);
       let user = req.session.get("user");
       const apps = await fastify.mongo.authdb.db
         .collection("users")
@@ -104,7 +114,33 @@ module.exports = function(fastify, opts, done) {
         successes: successes,
         user: req.session.get("user"),
         admin: admintest(req.session.get("user")),
-        alive: alive
+        online: alive
+      });
+    }
+  );
+
+  fastify.get(
+    "/logs/:appname",
+    {
+      preValidation: [validate]
+    },
+    async function(req, res) {
+      let alive = await ping(`${process.env.DOKKUHOST}`);
+      let user = req.session.get("user");
+      let successes = req.session.get("successes");
+      req.session.set("successes", "");
+      let errors = req.session.get("errors");
+      req.session.set("errors", "");
+      secret = fastify.jwt.sign({ user });
+
+      res.view("logs", {
+        appname: req.params.appname,
+        token: req.session.get("token"),
+        errors: errors,
+        successes: successes,
+        user: req.session.get("user"),
+        admin: admintest(req.session.get("user")),
+        online: alive
       });
     }
   );

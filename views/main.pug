@@ -13,39 +13,39 @@ block content
       hr
       .row 
         .col-4
-          label App name(must be globally unique):
-          br
-          input.form-control-lg.shadow#appname(name='app', type='text' required)
-          br
-          br
-          label github link(or other git link):
-          br
-          input.form-control-lg.shadow#github(type="text" name="github" required)
-          br
-          br
-          label Domain (required for Lets Encrypt SSL):
-          br
-          input.form-control-lg.shadow#domain(type="text" name="domain" required)
-          br
-          br
-          .row 
-            .col 
-              input#ssl(style="padding-left:10px" type="checkbox" name="ssl")
-              label SSL Enable
-            .col
-              input#restart(style="padding-left:10px" type="checkbox" name="restart")
-              label Restart on first load
-          br
-          label SSL Email (required for Lets Encrypt SSL)
-          input.form-control-lg.shadow#sslemail(type="text" name="sslemail")
-
-          br
-          br
-            
-          button.btn.btn-primary#deploy(type="button" onclick="deploy()" value=user) Submit
+          .input(style="height:50vh")
+            label App name(must be globally unique):
+            br
+            input.form-control.shadow#appname(name='app', type='text' required)
+            br
+            label github link (or other git link):
+            br
+            input.form-control.shadow#github(type="text" name="github" required)
+            br
+            label Database
+            select.form-control.shadow#database(type="text" name="database" required)
+              option(value="") None
+              option(value="postgres") Postgres
+              option(value="mariadb") MariaDB
+              option(value="mongodb") MongoDB
+              option(value="redis") Redis
+            br
+            label Domain (required for Lets Encrypt SSL):
+            br
+            input.form-control.shadow#domain(type="text" name="domain" required)
+          
+            br
+            label SSL Email (required for Lets Encrypt SSL)
+            input.form-control.shadow#sslemail(type="text" name="sslemail")  
+            br
+            input#ssl(style="padding-left:10px" type="checkbox" name="ssl")
+            label SSL Enable
+            br
+            br
+            button.btn.btn-primary#deploy(type="button" onclick="deploy()" value=user) Submit
         .col-8
           .card
-            .output#output(style="height:30vh")
+            .output#output(style="height:50vh")
               ul#console
                 
                 

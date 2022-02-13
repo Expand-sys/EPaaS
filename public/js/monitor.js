@@ -1,15 +1,5 @@
 var socket = io("http://localhost:3000");
-socket.on("online", function() {
-  console.log(`online`);
-  document.getElementById("monitor").style.display = "visible";
-  document.getElementById("monitordead").style.display = "none";
-});
 
-socket.on("offline", function() {
-  console.log(`offline`);
-  document.getElementById("monitor").style.display = "none";
-  document.getElementById("monitordead").style.display = "visible";
-});
 socket.on("deployout", function(data) {
   const node = document.createElement("LI");
   const textnode = document.createTextNode(`${data}`);
@@ -17,6 +7,7 @@ socket.on("deployout", function(data) {
   document.getElementById("console").appendChild(node);
   console.log(data.toString());
 });
+
 socket.on("mainerrors", function(data) {
   window.location.replace("/mainerrors");
 });
@@ -32,6 +23,17 @@ document.getElementById("ssl").addEventListener("change", function() {
   document.getElementById("sslemail").required = this.checked;
 });
 
+async function getlogs() {
+  const app = event.target.value;
+  const user = document.getElementById("user").value;
+  const token = document.getElementById("token").value;
+  socket.emit("getlogs", {
+    app: app,
+    token: token,
+    user: user
+  });
+}
+
 async function destroy() {
   const user = document.getElementById("user").value;
   const token = document.getElementById("token").value;
@@ -44,6 +46,44 @@ async function destroy() {
   await sleep(2000);
   await location.reload();
 }
+
+async function startcontainer() {
+  const user = document.getElementById("user").value;
+  const token = document.getElementById("token").value;
+  const app = event.target.value;
+  socket.emit("startcontainer", {
+    user: user,
+    app: app,
+    token: token
+  });
+  await sleep(2000);
+  await location.reload();
+}
+async function stopcontainer() {
+  const user = document.getElementById("user").value;
+  const token = document.getElementById("token").value;
+  const app = event.target.value;
+  socket.emit("stopcontainer", {
+    user: user,
+    app: app,
+    token: token
+  });
+  await sleep(2000);
+  await location.reload();
+}
+async function restartcontainer() {
+  const user = document.getElementById("user").value;
+  const token = document.getElementById("token").value;
+  const app = event.target.value;
+  socket.emit("restartcontainer", {
+    user: user,
+    app: app,
+    token: token
+  });
+  await sleep(2000);
+  await location.reload();
+}
+
 async function disablessl() {
   const user = document.getElementById("user").value;
   const token = document.getElementById("token").value;
@@ -79,15 +119,15 @@ function deploy() {
   const ssl = document.getElementById("ssl").checked;
   const domain = document.getElementById("domain").value;
   const sslemail = document.getElementById("sslemail").value;
-  const restart = document.getElementById("restart").checked;
+  const database = document.getElementById("database").value;
   socket.emit("deploysend", {
     token: token,
     github: github,
     appname: appname,
     user: user,
-    restart: restart,
     ssl: ssl,
     domain: domain,
-    sslemail: sslemail
+    sslemail: sslemail,
+    database: database
   });
 }

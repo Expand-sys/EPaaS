@@ -16,13 +16,16 @@ html
               a.navbar-brand(href='/')
                 img(src="/CCashLogo3.png" style="width:75px; height:74px")
             .col 
+            
               #monitor.nav-item(style="padding:5px")
+                if online == true
                   p.text-white Server is Online
                   p.text-white(style="margin:0px") User:
-                  input#user(style="hidden" type="hidden" value=user)
-                  input#token(style="hidden" type="hidden" value=token)
-                  p.text-white(style="margin:0px") #{user}
-              #monitordead.nav-item(style="padding:5px")
+                input#user(style="hidden" type="hidden" value=user)
+                input#token(style="hidden" type="hidden" value=token)
+                p.text-white(style="margin:0px") #{user}
+              if online == false
+                #monitordead.nav-item(style="padding:5px")
                   p(style="color: red;") Server is offline
               
         button.navbar-toggler(type='button', data-toggle='collapse', data-target='#navbars', aria-controls='navbars', aria-expanded='false', aria-label='Toggle navigation')

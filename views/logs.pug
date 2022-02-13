@@ -1,0 +1,12 @@
+extends layout
+
+
+block content
+  .container
+    .card.shadow-lg
+      h5 Kepp this window open while doing operations it updates automagically
+      button.btn.btn-success#fetchlogs(type="button" onclick="getlogs()" value=appname) fetch logs
+      
+      
+      .output#output(style="height:50vh")
+        ul#console
