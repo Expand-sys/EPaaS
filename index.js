@@ -340,7 +340,7 @@ function sendCommand(command, username) {
           host: `${process.env.DOKKUHOST}`,
           port: 22,
           username: `root`,
-          privateKey: fs.readFileSync("/home/harrison/.ssh/id_rsa")
+          privateKey: fs.readFileSync("~/.ssh/id_rsa")
         });
     } catch (err) {
       console.log(err);
