@@ -241,7 +241,13 @@ fastify.ready().then(async () => {
             );
             await sendCommand(`dokku acl:add ${data.appname} Expand`);
             const remoteadd = await exec(
-              `git remote add dokku dokku@${process.env.DOKKUHOST}:${data.appname}`,
+              `git`,
+              [
+                "remote",
+                "add",
+                "dokku",
+                `dokku@${process.env.DOKKUHOST}:${data.appname}`,
+              ],
               {
                 cwd: `/home/epaas/${data.appname}/`,
                 shell: true,
@@ -254,6 +260,7 @@ fastify.ready().then(async () => {
               {
                 cwd: `/home/epaas/${data.appname}/`,
                 detached: true,
+                shell: true,
               }
             );
             deploy.stdout.on("data", (output) => {
@@ -343,6 +350,7 @@ function sendCommand(command, username) {
           port: 22,
           username: `root`,
           privateKey: fs.readFileSync("/home/epaas/.ssh/id_rsa"),
+          readyTimeout: 5000,
         });
     } catch (err) {
       console.log(err);
