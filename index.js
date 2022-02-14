@@ -39,7 +39,7 @@ fastify.register(require("fastify-secure-session"), {
   key: fs.readFileSync(path.join(__dirname, "secret-key")),
   cookie: {
     path: "/",
-    secure: true,
+    secure: process.env.SECURE,
     httpOnly: true,
     overwrite: true
   }
