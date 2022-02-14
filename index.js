@@ -203,9 +203,7 @@ fastify.ready().then(async () => {
           socket.emit("mainerrors");
         } else {
           try {
-            fs.rmSync(`${process.env.HOMEDIR}/${data.appname}`, {
-              recursive: true
-            });
+            sendcommand(`rm -rf ${process.env.HOMEDIR}/${data.appname}`);
           } catch (e) {
             console.log(e);
           }
@@ -273,7 +271,10 @@ fastify.ready().then(async () => {
                         );
                         sendCommand(`dokku letsencrypt:enable ${data.appname}`);
                       }
+                      sendCommand(`rm -rf ~/${data.appname}`);
                     }
+                  } else {
+                    cleanup();
                   }
                 } else {
                   cleanup();
