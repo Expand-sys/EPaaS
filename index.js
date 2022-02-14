@@ -293,7 +293,7 @@ async function cleanup(appname) {
 
 async function sendCommand(command, username) {
   let output;
-  return new Promise((resolve, reject) => {
+  const promise = new Promise((resolve, reject) => {
     if (!command.includes(";")) {
       const conn = new Client();
 
@@ -345,6 +345,8 @@ async function sendCommand(command, username) {
       console.log(newCommand);
     }
   });
+  return promise;
+  promise.catch(() => null);
 }
 
 fastify.post("/setup", async function(req, res) {
