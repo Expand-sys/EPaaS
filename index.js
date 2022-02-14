@@ -18,6 +18,7 @@ const uri = `mongodb+srv://${process.env.MONGODBUSR}:${process.env.MONGODBPW}@ep
 const { exec, spawn } = require("child_process");
 const util = require("util");
 const execping = util.promisify(require("child_process").exec);
+const sshexec = require("ssh2-exec");
 
 fastify.register(require("fastify-jwt"), { secret: "supersecret" });
 fastify.register(require("fastify-mongodb"), {
@@ -202,7 +203,7 @@ fastify.ready().then(async () => {
           socket.emit("mainerrors");
         } else {
           try {
-            fs.rmSync(`/home/epaas/${data.appname}`, {
+            fs.rmSync(`${process.env.HOMEDIR}/${data.appname}`, {
               recursive: true
             });
           } catch (e) {
@@ -213,122 +214,136 @@ fastify.ready().then(async () => {
               `dokku ${data.database}:create ${data.appname}-db && dokku ${data.database}:link ${data.appname}-db ${data.appname}`
             );
           }
-          await sendCommand(`dokku apps:create ${data.appname}`);
-          fastify.io.emit("deployout", "stage 1 finished");
+          if (
+            (await sendCommand(`dokku apps:create ${data.appname}`)) == true
+          ) {
+            await fastify.io.emit("deployout", "stage 1 finished");
+            if (
+              (await sendCommand(`git clone ${data.github} ${data.appname}`)) ==
+              true
+            ) {
+              await fastify.io.emit("deployout", "stage 2 finished");
+              let userdb = await fastify.mongo.authdb.db
+                .collection("users")
+                .findOne({ user: data.user });
+              console.log(userdb);
+              if (
+                await sendCommand(
+                  `dokku acl:add ${data.appname} ${userdb.pubkeyname}`
+                )
+              ) {
+                await fastify.io.emit("deployout", "stage 3 finished");
+                await sendCommand(`dokku acl:add ${data.appname} Expand`);
+                if (
+                  await sendCommand(
+                    `cd ~/${data.appname} && git remote add dokku dokku@${process.env.DOKKUHOST}:${data.appname}`
+                  )
+                ) {
+                  await fastify.io.emit("deployout", "stage 4 finished");
+                  if (
+                    await sendCommand(
+                      `cd ~/${data.appname} && git push dokku main:master`
+                    )
+                  ) {
+                    await fastify.io.emit("deployout", "stage 5 finished");
 
-          await sendCommand(`git clone ${data.github} ${data.appname}`);
-          fastify.io.emit("deployout", "stage 2 finished");
-          let userdb = await fastify.mongo.authdb.db
-            .collection("users")
-            .findOne({ user: data.user });
-          console.log(userdb);
-          await sendCommand(
-            `dokku acl:add ${data.appname} ${userdb.pubkeyname}`
-          );
-          fastify.io.emit("deployout", "stage 3 finished");
-          await sendCommand(`dokku acl:add ${data.appname} Expand`);
-          await sendCommand(
-            `cd ~/${data.appname} && git remote add dokku dokku@${process.env.DOKKUHOST}:${data.appname}`
-          );
-          fastify.io.emit("deployout", "stage 4 finished");
-
-          /*const remoteadd = await exec(
-            `git remote add dokku dokku@${process.env.DOKKUHOST}:${data.appname}`,
-            {
-              cwd: `/home/epaas/${data.appname}/`,
-              shell: true,
-              detached: true
-            }
-          );*/
-          await sendCommand(
-            `cd ~/${data.appname} && git push dokku main:master`
-          );
-          fastify.io.emit("deployout", "stage 5 finished");
-
-          const update = {
-            $addToSet: { apps: data.appname }
-          };
-          fastify.mongo.authdb.db
-            .collection("users")
-            .findOneAndUpdate({ user: data.user }, update, {
-              upsert: true
-            });
-          fastify.io.emit("deployout", "Complete");
-          if (data.domain) {
-            sendCommand(`dokku domains:add ${data.appname} ${data.domain}`);
-            sendCommand(
-              `dokku domains:remove ${data.appname} ${data.appname}.epaas.cx`
-            );
-            fastify.io.emit(
-              "deployout",
-              `Please add a CNAME record from ${data.domain} to core.epaas.cx`
-            );
-            if (data.ssl) {
-              sendCommand(
-                `dokku config:set --no-restart ${data.appname} DOKKU_LETSENCRYPT_EMAIL=${data.sslemail}`
-              );
-              sendCommand(`dokku letsencrypt:enable ${data.appname}`);
+                    const update = {
+                      $addToSet: { apps: data.appname }
+                    };
+                    fastify.mongo.authdb.db
+                      .collection("users")
+                      .findOneAndUpdate({ user: data.user }, update, {
+                        upsert: true
+                      });
+                    fastify.io.emit("deployout", "Complete");
+                    if (data.domain) {
+                      sendCommand(
+                        `dokku domains:add ${data.appname} ${data.domain}`
+                      );
+                      sendCommand(
+                        `dokku domains:remove ${data.appname} ${data.appname}.epaas.cx`
+                      );
+                      fastify.io.emit(
+                        "deployout",
+                        `Please add a CNAME record from ${data.domain} to core.epaas.cx`
+                      );
+                      if (data.ssl) {
+                        sendCommand(
+                          `dokku config:set --no-restart ${data.appname} DOKKU_LETSENCRYPT_EMAIL=${data.sslemail}`
+                        );
+                        sendCommand(`dokku letsencrypt:enable ${data.appname}`);
+                      }
+                    }
+                  }
+                } else {
+                  cleanup();
+                }
+              }
             }
           }
-          cleanup(data.appname);
         }
       }
     });
   });
 });
 async function cleanup(appname) {
-  fs.rmSync(`/home/epaas/${appname}`, {
-    recursive: true
-  });
+  sendCommand(`dokku apps:destroy ${appname}`);
 }
 
-function sendCommand(command, username) {
+async function sendCommand(command, username) {
   let output;
+  return new Promise((resolve, reject) => {
+    if (!command.includes(";")) {
+      const conn = new Client();
 
-  if (!command.includes(";")) {
-    console.log(command);
-    const conn = new Client();
-    try {
-      conn
-        .on("ready", () => {
-          console.log("SSH Client Ready");
-          conn.exec(`${command}`, (err, stream) => {
-            if (err) throw err;
-            stream
-              .on("close", (code, signal) => {
-                console.log(
-                  "Stream :: close :: code: " + code + ", signal: " + signal
-                );
-                conn.end();
-              })
-              .on("data", data => {
-                console.log("STDOUT: " + data);
-                fastify.io.emit("online");
-                fastify.io.emit("deployout", "" + data + "\n");
-              })
-              .stderr.on("data", data => {
-                console.log("STDERR: " + data);
-                fastify.io.emit("offline");
-                fastify.io.emit("error", data);
-              });
+      try {
+        conn
+          .on("ready", async () => {
+            console.log("SSH Client Ready");
+            let child = await sshexec(
+              {
+                command: command,
+                ssh: conn
+              },
+              (err, stdout, stderr, code) => {
+                console.info(stdout);
+              }
+            );
+            child.stdout.on("data", function(data) {
+              console.info(data);
+              fastify.io.emit("deployout", "" + data);
+            });
+            child.stderr.on("data", function(data) {
+              console.error(data);
+              fastify.io.emit("deployout", "" + data);
+            });
+            child.on("exit", function(code) {
+              console.info("Exit", code);
+              conn.end();
+              if (code >= 1) {
+                resolve(false);
+              } else {
+                resolve(true);
+              }
+            });
+          })
+          .connect({
+            host: `${process.env.DOKKUHOST}`,
+            port: 22,
+            username: `root`,
+            privateKey: fs.readFileSync(`${process.env.HOMEDIR}/.ssh/id_rsa`),
+            readyTimeout: 200000
           });
-        })
-        .connect({
-          host: `${process.env.DOKKUHOST}`,
-          port: 22,
-          username: `root`,
-          privateKey: fs.readFileSync("/home/epaas/.ssh/id_rsa"),
-          readyTimeout: 200000
-        });
-    } catch (err) {
-      console.log(err);
-      fastify.io.emit("offline");
+      } catch (err) {
+        console.log(err);
+        fastify.io.emit("offline");
+      }
+    } else {
+      fastify.io.emit("data", "Nice Try Batman, Sanitizing input...");
+      let newCommand = command.split(";")[0];
+      console.log(newCommand);
     }
-  } else {
-    fastify.io.emit("data", "Nice Try Batman, Sanitizing input...");
-    let newCommand = command.split(";")[0];
-    console.log(newCommand);
-  }
+  });
 }
 
 fastify.post("/setup", async function(req, res) {
