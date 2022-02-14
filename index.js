@@ -78,9 +78,10 @@ async function verifypass(req, res, done) {
   try {
     test = req.session.get("token");
     user = req.session.get("user");
-    const mongo = fastify.mongo.authdb.db.collection("users");
-    userdb = await mongo.findOne({ user });
-    userdb = userdb.token;
+    const mongo = await fastify.mongo.authdb.db
+      .collection("users")
+      .findOne({ user });
+    userdb = mongo.token;
   } catch (e) {
     console.log(e);
   }
