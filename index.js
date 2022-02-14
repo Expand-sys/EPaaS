@@ -321,12 +321,13 @@ async function sendCommand(command, username) {
             });
             child.on("exit", function(code) {
               console.info("Exit", code);
-              conn.end();
+
               if (code >= 1) {
                 resolve(false);
               } else {
                 resolve(true);
               }
+              conn.end();
             });
           })
           .connect({

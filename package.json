@@ -31,14 +31,14 @@
   "main": "index.js",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Expand-sys/ccashfrontend.git"
+    "url": "git+https://github.com/Expand-sys/EPaaS.git"
   },
   "author": "Expand",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/Expand-sys/ccashfrontend/issues"
+    "url": "https://github.com/Expand-sys/EPaaS/issues"
   },
-  "homepage": "https://github.com/Expand-sys/ccashfrontend#readme",
+  "homepage": "https://github.com/Expand-sys/EPaaS#readme",
   "engines": {
     "node": "17.x"
   },

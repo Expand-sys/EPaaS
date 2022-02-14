@@ -3,4 +3,4 @@ FROM keymetrics/pm2:16-buster
 WORKDIR /app
 COPY . .
 RUN npm install
-CMD [ "pm2-runtime", "start", "pm2.json", "--watch"]
+CMD [ "pm2", "start", "index.js"]
