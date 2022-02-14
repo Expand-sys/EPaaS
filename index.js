@@ -241,24 +241,22 @@ fastify.ready().then(async () => {
             );
             await sendCommand(`dokku acl:add ${data.appname} Expand`);
             const remoteadd = await exec(
-              `git`,
-              [
-                "remote",
-                "add",
-                "dokku",
-                `dokku@${process.env.DOKKUHOST}:${data.appname}`
-              ],
+              `git remote add dokku dokku@${process.env.DOKKUHOST}:${data.appname}`,
               {
                 cwd: `/home/epaas/${data.appname}/`,
                 shell: true,
                 detached: true
               }
             );
-            const deploy = await spawn(`git push dokku main:master`, {
-              cwd: `/home/epaas/${data.appname}/`,
-              detached: true,
-              shell: true
-            });
+            const deploy = await spawn(
+              `git`,
+              ["push", "dokku", "main:master"],
+              {
+                cwd: `/home/epaas/${data.appname}/`,
+                detached: true,
+                shell: true
+              }
+            );
             deploy.stdout.on("data", output => {
               console.log(output.toString());
               fastify.io.emit("deployout", output.toString());
