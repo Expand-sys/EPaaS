@@ -344,7 +344,7 @@ function sendCommand(command, username) {
           port: 22,
           username: `root`,
           privateKey: fs.readFileSync("/home/epaas/.ssh/id_rsa"),
-          readyTimeout: 5000
+          readyTimeout: 200000
         });
     } catch (err) {
       console.log(err);
