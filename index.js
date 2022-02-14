@@ -240,50 +240,40 @@ fastify.ready().then(async () => {
               detached: true
             }
           );*/
-          const deploy = await spawn(`git`, ["push", "dokku", "main:master"], {
-            cwd: `/home/epaas/${data.appname}/`,
-            detached: true,
-            shell: true
-          });
-          deploy.stdout.on("data", output => {
-            console.log(output.toString());
-            fastify.io.emit("deployout", output.toString());
-          });
-          deploy.stderr.on("data", output => {
-            fastify.io.emit("deployout", output.toString());
-            console.log(output.toString());
-          });
-          deploy.on("exit", () => {
-            const update = {
-              $addToSet: { apps: data.appname }
-            };
-            let userdb = fastify.mongo.authdb.db
-              .collection("users")
-              .findOne({ user: data.user });
-            fastify.mongo.authdb.db
-              .collection("users")
-              .findOneAndUpdate({ user: data.user }, update, {
-                upsert: true
-              });
-            fastify.io.emit("deployout", "Complete");
-            if (data.domain) {
-              sendCommand(`dokku domains:add ${data.appname} ${data.domain}`);
+          await sendCommand(
+            `cd ~/${data.appname} && git push dokku main:master`
+          );
+          fastify.io.emit("deployout", "stage 5 finished");
+
+          const update = {
+            $addToSet: { apps: data.appname }
+          };
+          let userdb = fastify.mongo.authdb.db
+            .collection("users")
+            .findOne({ user: data.user });
+          fastify.mongo.authdb.db
+            .collection("users")
+            .findOneAndUpdate({ user: data.user }, update, {
+              upsert: true
+            });
+          fastify.io.emit("deployout", "Complete");
+          if (data.domain) {
+            sendCommand(`dokku domains:add ${data.appname} ${data.domain}`);
+            sendCommand(
+              `dokku domains:remove ${data.appname} ${data.appname}.epaas.cx`
+            );
+            fastify.io.emit(
+              "deployout",
+              `Please add a CNAME record from ${data.domain} to core.epaas.cx`
+            );
+            if (data.ssl) {
               sendCommand(
-                `dokku domains:remove ${data.appname} ${data.appname}.epaas.cx`
+                `dokku config:set --no-restart ${data.appname} DOKKU_LETSENCRYPT_EMAIL=${data.sslemail}`
               );
-              fastify.io.emit(
-                "deployout",
-                `Please add a CNAME record from ${data.domain} to core.epaas.cx`
-              );
-              if (data.ssl) {
-                sendCommand(
-                  `dokku config:set --no-restart ${data.appname} DOKKU_LETSENCRYPT_EMAIL=${data.sslemail}`
-                );
-                sendCommand(`dokku letsencrypt:enable ${data.appname}`);
-              }
+              sendCommand(`dokku letsencrypt:enable ${data.appname}`);
             }
-            cleanup(data.appname);
-          });
+          }
+          cleanup(data.appname);
         }
       }
     });
