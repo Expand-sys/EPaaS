@@ -204,6 +204,7 @@ fastify.ready().then(async () => {
           socket.emit("mainerrors");
         } else {
           try {
+            console.log("here 1");
             sendCommand(`rm -rf ${process.env.HOMEDIR}/${data.appname}`);
           } catch (e) {
             console.log(e);
