@@ -248,9 +248,6 @@ fastify.ready().then(async () => {
           const update = {
             $addToSet: { apps: data.appname }
           };
-          let userdb = fastify.mongo.authdb.db
-            .collection("users")
-            .findOne({ user: data.user });
           fastify.mongo.authdb.db
             .collection("users")
             .findOneAndUpdate({ user: data.user }, update, {
