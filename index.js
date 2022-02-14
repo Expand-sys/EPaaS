@@ -271,7 +271,6 @@ fastify.ready().then(async () => {
               let userdb = fastify.mongo.authdb.db
                 .collection("users")
                 .findOne({ user: data.user });
-              sendCommand(`dokku acl:add ${data.appname} ${userdb.pubkeyname}`);
               fastify.mongo.authdb.db
                 .collection("users")
                 .findOneAndUpdate({ user: data.user }, update, {
