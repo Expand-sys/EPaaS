@@ -4,7 +4,7 @@ const dotenv = require("dotenv");
 
 dotenv.config({ path: ".env" });
 const fastify = require("fastify")({
-  logger: false
+  logger: false,
 });
 
 const fastifyFlash = require("fastify-flash");
@@ -23,14 +23,14 @@ fastify.register(require("fastify-jwt"), { secret: "supersecret" });
 fastify.register(require("fastify-mongodb"), {
   forceClose: true,
   name: "authdb",
-  url: uri
+  url: uri,
 });
 
 fastify.register(require("fastify-auth"));
 fastify.register(require("fastify-formbody"));
 fastify.register(require("fastify-static"), {
   root: path.join(__dirname, "public"),
-  prefix: "/" // optional: default '/'
+  prefix: "/", // optional: default '/'
 });
 
 fastify.register(require("fastify-secure-session"), {
@@ -40,22 +40,22 @@ fastify.register(require("fastify-secure-session"), {
     path: "/",
     secure: true,
     httpOnly: true,
-    overwrite: true
-  }
+    overwrite: true,
+  },
 });
 fastify.register(fastifyFlash);
 fastify.register(require("point-of-view"), {
   engine: {
-    pug: require("pug")
+    pug: require("pug"),
   },
   defaultContext: {},
-  root: path.join(__dirname, "views")
+  root: path.join(__dirname, "views"),
 });
 fastify.register(require("fastify-socket.io"), {});
 
 const dukku = `${process.env.DOKKUHOST}`;
 
-const ping = async host => {
+const ping = async (host) => {
   const { stdout, stderr } = await execping(`ping -c 1 ${host}`);
   if (!stderr) {
     return true;
@@ -94,8 +94,8 @@ async function verifypass(req, res, done) {
 }
 
 fastify.ready().then(async () => {
-  fastify.io.on("connection", socket => {
-    socket.on("getlogs", async data => {
+  fastify.io.on("connection", (socket) => {
+    socket.on("getlogs", async (data) => {
       user = data.user;
       const mongo = fastify.mongo.authdb.db.collection("users");
       userdb = await mongo.findOne({ user });
@@ -105,7 +105,7 @@ fastify.ready().then(async () => {
         sendCommand(`dokku logs:vector-logs ${data.app} --tail`);
       }
     });
-    socket.on("startcontainer", async data => {
+    socket.on("startcontainer", async (data) => {
       user = data.user;
       const mongo = fastify.mongo.authdb.db.collection("users");
       userdb = await mongo.findOne({ user });
@@ -115,7 +115,7 @@ fastify.ready().then(async () => {
         await sendCommand(`dokku ps:start ${data.app}`);
       }
     });
-    socket.on("stopcontainer", async data => {
+    socket.on("stopcontainer", async (data) => {
       user = data.user;
       const mongo = fastify.mongo.authdb.db.collection("users");
       userdb = await mongo.findOne({ user });
@@ -125,7 +125,7 @@ fastify.ready().then(async () => {
         await sendCommand(`dokku ps:stop ${data.app}`);
       }
     });
-    socket.on("restartcontainer", async data => {
+    socket.on("restartcontainer", async (data) => {
       user = data.user;
       const mongo = fastify.mongo.authdb.db.collection("users");
       userdb = await mongo.findOne({ user });
@@ -135,7 +135,7 @@ fastify.ready().then(async () => {
         await sendCommand(`dokku ps:restart ${data.app}`);
       }
     });
-    socket.on("enablessl", async data => {
+    socket.on("enablessl", async (data) => {
       user = data.user;
       const mongo = fastify.mongo.authdb.db.collection("users");
       userdb = await mongo.findOne({ user });
@@ -145,7 +145,7 @@ fastify.ready().then(async () => {
         await sendCommand(`dokku letsencrypt:enable ${data.appname}`);
       }
     });
-    socket.on("disablessl", async data => {
+    socket.on("disablessl", async (data) => {
       user = data.user;
       const mongo = fastify.mongo.authdb.db.collection("users");
       userdb = await mongo.findOne({ user });
@@ -156,7 +156,7 @@ fastify.ready().then(async () => {
       }
     });
 
-    socket.on("destroy", async data => {
+    socket.on("destroy", async (data) => {
       user = data.user;
       const mongo = fastify.mongo.authdb.db.collection("users");
       userdb = await mongo.findOne({ user });
@@ -166,7 +166,7 @@ fastify.ready().then(async () => {
         await sendCommand(`dokku --force apps:destroy ${data.app}`);
         console.log(data);
         const update = {
-          $pull: { apps: data.app }
+          $pull: { apps: data.app },
         };
         console.log(
           await fastify.mongo.authdb.db
@@ -176,7 +176,7 @@ fastify.ready().then(async () => {
       }
     });
 
-    socket.on("deploysend", async data => {
+    socket.on("deploysend", async (data) => {
       user = data.user;
       data.appname = data.appname.replaceAll(" ", "-");
       data.appname = data.appname.split(";")[0];
@@ -203,7 +203,7 @@ fastify.ready().then(async () => {
         } else {
           try {
             fs.rmSync(`/home/epaas/${data.appname}`, {
-              recursive: true
+              recursive: true,
             });
           } catch (e) {
             console.log(e);
@@ -219,14 +219,14 @@ fastify.ready().then(async () => {
             ["clone", data.github, data.appname],
             {
               cwd: "/home/epaas/",
-              detached: false
+              detached: false,
             }
           );
-          clone.stdout.on("data", output => {
+          clone.stdout.on("data", (output) => {
             fastify.io.emit("deployout", output.toString());
             console.log(data.toString());
           });
-          clone.stderr.on("data", output => {
+          clone.stderr.on("data", (output) => {
             fastify.io.emit("deployout", output.toString());
             console.log(output.toString());
           });
@@ -245,7 +245,7 @@ fastify.ready().then(async () => {
               {
                 cwd: `/home/epaas/${data.appname}/`,
                 shell: true,
-                detached: true
+                detached: true,
               }
             );
             const deploy = await spawn(
@@ -253,20 +253,20 @@ fastify.ready().then(async () => {
               ["push", "dokku", "main:master"],
               {
                 cwd: `/home/epaas/${data.appname}/`,
-                detached: true
+                detached: true,
               }
             );
-            deploy.stdout.on("data", output => {
+            deploy.stdout.on("data", (output) => {
               console.log(output.toString());
               fastify.io.emit("deployout", output.toString());
             });
-            deploy.stderr.on("data", output => {
+            deploy.stderr.on("data", (output) => {
               fastify.io.emit("deployout", output.toString());
               console.log(output.toString());
             });
             deploy.on("exit", () => {
               const update = {
-                $addToSet: { apps: data.appname }
+                $addToSet: { apps: data.appname },
               };
               let userdb = fastify.mongo.authdb.db
                 .collection("users")
@@ -275,7 +275,7 @@ fastify.ready().then(async () => {
               fastify.mongo.authdb.db
                 .collection("users")
                 .findOneAndUpdate({ user: data.user }, update, {
-                  upsert: true
+                  upsert: true,
                 });
               fastify.io.emit("deployout", "Complete");
               if (data.domain) {
@@ -304,7 +304,7 @@ fastify.ready().then(async () => {
 });
 async function cleanup(appname) {
   fs.rmSync(`/home/epaas/${appname}`, {
-    recursive: true
+    recursive: true,
   });
 }
 
@@ -327,12 +327,12 @@ function sendCommand(command, username) {
                 );
                 conn.end();
               })
-              .on("data", data => {
+              .on("data", (data) => {
                 console.log("STDOUT: " + data);
                 fastify.io.emit("online");
                 fastify.io.emit("deployout", "" + data + "\n");
               })
-              .stderr.on("data", data => {
+              .stderr.on("data", (data) => {
                 console.log("STDERR: " + data);
                 fastify.io.emit("offline");
                 fastify.io.emit("error", data);
@@ -343,7 +343,7 @@ function sendCommand(command, username) {
           host: `${process.env.DOKKUHOST}`,
           port: 22,
           username: `root`,
-          privateKey: fs.readFileSync("/home/epaas/.ssh/id_rsa")
+          privateKey: fs.readFileSync("/home/epaas/.ssh/id_rsa"),
         });
     } catch (err) {
       console.log(err);
@@ -356,7 +356,7 @@ function sendCommand(command, username) {
   }
 }
 
-fastify.post("/setup", async function(req, res) {
+fastify.post("/setup", async function (req, res) {
   const { url, secure } = req.body;
   if (secure) {
     process.env.SECURE = true;
@@ -377,7 +377,7 @@ fastify.post("/setup", async function(req, res) {
   res.redirect("/");
 });
 
-fastify.get("/", async function(req, res) {
+fastify.get("/", async function (req, res) {
   let successes = req.session.get("successes");
   req.session.set("successes", "");
   let errors = req.session.get("errors");
@@ -394,15 +394,15 @@ fastify.get("/", async function(req, res) {
     online: alive,
     url: process.env.DOKKUHOST,
     errors: errors,
-    successes: successes
+    successes: successes,
   });
 });
 fastify.get(
   "/mainerrors",
   {
-    preValidation: [verifypass]
+    preValidation: [verifypass],
   },
-  async function(req, res) {
+  async function (req, res) {
     req.session.set("successes", "");
     req.session.set("errors", "Please fill in fields");
     res.redirect("main");
@@ -412,9 +412,9 @@ fastify.get(
 fastify.get(
   "/toomanyapps",
   {
-    preValidation: [verifypass]
+    preValidation: [verifypass],
   },
-  async function(req, res) {
+  async function (req, res) {
     req.session.set("successes", "");
     req.session.set(
       "errors",
@@ -427,9 +427,9 @@ fastify.get(
 fastify.get(
   "/main",
   {
-    preValidation: [verifypass]
+    preValidation: [verifypass],
   },
-  async function(req, res) {
+  async function (req, res) {
     let successes = req.session.get("successes");
     req.session.set("successes", "");
     let errors = req.session.get("errors");
@@ -441,7 +441,7 @@ fastify.get(
       admin: admintest(req.session.get("user")),
       sucesses: successes,
       errors: errors,
-      online: alive
+      online: alive,
     });
   }
 );
@@ -449,9 +449,9 @@ fastify.get(
 fastify.post(
   "/deploy",
   {
-    preValidation: [verifypass]
+    preValidation: [verifypass],
   },
-  async function(req, res) {
+  async function (req, res) {
     let { github, appname } = req.body;
     req.session.set("errors", "");
     req.session.set("successes", "");
@@ -468,10 +468,10 @@ fastify.route({
       type: "object",
       properties: {
         user: { type: "string" },
-        password: { type: "string" }
+        password: { type: "string" },
       },
-      required: ["user", "password"]
-    }
+      required: ["user", "password"],
+    },
   },
   handler: async (req, reply) => {
     req.log.info("Creating new user");
@@ -494,7 +494,7 @@ fastify.route({
           token: token,
           pubkey: req.body.pubkey,
           pubkeyname: keyname,
-          apps: []
+          apps: [],
         });
         await sendCommand(
           `echo ${req.body.pubkey} | dokku ssh-keys:add ${keyname}`
@@ -508,10 +508,10 @@ fastify.route({
         reply.redirect("/register");
       }
     }
-  }
+  },
 });
 
-fastify.post("/login", async function(req, res) {
+fastify.post("/login", async function (req, res) {
   const { user, password } = req.body;
   let userdb = await fastify.mongo.authdb.db
     .collection("users")
@@ -537,12 +537,12 @@ fastify.register(require("./routes/settings"), { prefix: "/settings" });
 
 fastify.register(require("./routes/apps"), { prefix: "/apps" });
 
-fastify.get("/trickery", function(req, res) {
+fastify.get("/trickery", function (req, res) {
   req.session.delete();
   res.view("trickery");
 });
 
-fastify.get("/logout", async function(req, res) {
+fastify.get("/logout", async function (req, res) {
   let successes = req.session.get("successes");
   let errors = req.session.get("errors");
   req.session.delete();
@@ -551,7 +551,7 @@ fastify.get("/logout", async function(req, res) {
   res.redirect("login");
 });
 
-fastify.get("/login", async function(req, res) {
+fastify.get("/login", async function (req, res) {
   let successes = req.session.get("successes");
   req.session.set("successes", "");
   let errors = req.session.get("errors");
@@ -562,11 +562,11 @@ fastify.get("/login", async function(req, res) {
     successes: successes,
     errors: errors,
     user: req.session.get("user"),
-    online: alive
+    online: alive,
   });
 });
 
-fastify.get("/register", async function(req, res) {
+fastify.get("/register", async function (req, res) {
   let successes = req.session.get("successes");
   req.session.set("successes", "");
   let errors = req.session.get("errors");
@@ -579,15 +579,15 @@ fastify.get("/register", async function(req, res) {
     errors: errors,
     user: req.session.get("user"),
     admin: req.session.get("admin"),
-    online: alive
+    online: alive,
   });
 });
-process.on("SIGINT", function() {
+process.on("SIGINT", function () {
   client.close();
   process.exit();
 });
 
-fastify.listen(process.env.PORT || 3000, "0.0.0.0", function(err, address) {
+fastify.listen(process.env.PORT || 3000, "0.0.0.0", function (err, address) {
   if (err) {
     fastify.log.error(err);
     process.exit(1);
