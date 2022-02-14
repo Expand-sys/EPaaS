@@ -205,7 +205,7 @@ fastify.ready().then(async () => {
         } else {
           try {
             console.log("here 1");
-            sendCommand(`rm -rf ${process.env.HOMEDIR}/${data.appname}`);
+            //sendCommand(`rm -rf ${process.env.HOMEDIR}/${data.appname}`);
           } catch (e) {
             console.log(e);
           }
