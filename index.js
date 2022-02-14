@@ -313,26 +313,26 @@ async function sendCommand(command, username) {
           console.info(stdout);
         }
       );
-      child.stdout.on("data", function(data) {
-        console.info(data);
-        fastify.io.emit("deployout", "" + data);
-      });
-      child.stderr.on("data", function(data) {
-        console.error(data);
-        fastify.io.emit("deployout", "" + data);
-      });
-      child.on("exit", function(code) {
-        console.info("Exit", code);
 
-        if (code >= 1) {
-          resolve(false);
-        } else {
-          resolve(true);
-        }
-        conn.end();
-      });
       child.on("ready", async () => {
         console.log("SSH Client Ready");
+        child.stdout.on("data", function(data) {
+          console.info(data);
+          fastify.io.emit("deployout", "" + data);
+        });
+        child.stderr.on("data", function(data) {
+          console.error(data);
+          fastify.io.emit("deployout", "" + data);
+        });
+        child.on("exit", function(code) {
+          console.info("Exit", code);
+
+          if (code >= 1) {
+            resolve(false);
+          } else {
+            resolve(true);
+          }
+        });
       });
     } else {
       fastify.io.emit("data", "Nice Try Batman, Sanitizing input...");
