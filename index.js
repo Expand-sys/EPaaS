@@ -228,56 +228,49 @@ fastify.ready().then(async () => {
                 .collection("users")
                 .findOne({ user: data.user });
               console.log(userdb);
+
+              await fastify.io.emit("deployout", "stage 3 finished");
+              await sendCommand(`dokku acl:add ${data.appname} Expand`);
               if (
                 await sendCommand(
-                  `dokku acl:add ${data.appname} ${userdb.pubkeyname}`
+                  `cd ~/${data.appname} && git remote add dokku dokku@${process.env.DOKKUHOST}:${data.appname}`
                 )
               ) {
-                await fastify.io.emit("deployout", "stage 3 finished");
-                await sendCommand(`dokku acl:add ${data.appname} Expand`);
+                await fastify.io.emit("deployout", "stage 4 finished");
                 if (
                   await sendCommand(
-                    `cd ~/${data.appname} && git remote add dokku dokku@${process.env.DOKKUHOST}:${data.appname}`
+                    `cd ~/${data.appname} && git push dokku main:master`
                   )
                 ) {
-                  await fastify.io.emit("deployout", "stage 4 finished");
-                  if (
-                    await sendCommand(
-                      `cd ~/${data.appname} && git push dokku main:master`
-                    )
-                  ) {
-                    await fastify.io.emit("deployout", "stage 5 finished");
+                  await fastify.io.emit("deployout", "stage 5 finished");
 
-                    const update = {
-                      $addToSet: { apps: data.appname }
-                    };
-                    fastify.mongo.authdb.db
-                      .collection("users")
-                      .findOneAndUpdate({ user: data.user }, update, {
-                        upsert: true
-                      });
-                    fastify.io.emit("deployout", "Complete");
-                    if (data.domain) {
+                  const update = {
+                    $addToSet: { apps: data.appname }
+                  };
+                  fastify.mongo.authdb.db
+                    .collection("users")
+                    .findOneAndUpdate({ user: data.user }, update, {
+                      upsert: true
+                    });
+                  fastify.io.emit("deployout", "Complete");
+                  if (data.domain) {
+                    sendCommand(
+                      `dokku domains:add ${data.appname} ${data.domain}`
+                    );
+                    sendCommand(
+                      `dokku domains:remove ${data.appname} ${data.appname}.epaas.cx`
+                    );
+                    fastify.io.emit(
+                      "deployout",
+                      `Please add a CNAME record from ${data.domain} to core.epaas.cx`
+                    );
+                    if (data.ssl) {
                       sendCommand(
-                        `dokku domains:add ${data.appname} ${data.domain}`
+                        `dokku config:set --no-restart ${data.appname} DOKKU_LETSENCRYPT_EMAIL=${data.sslemail}`
                       );
-                      sendCommand(
-                        `dokku domains:remove ${data.appname} ${data.appname}.epaas.cx`
-                      );
-                      fastify.io.emit(
-                        "deployout",
-                        `Please add a CNAME record from ${data.domain} to core.epaas.cx`
-                      );
-                      if (data.ssl) {
-                        sendCommand(
-                          `dokku config:set --no-restart ${data.appname} DOKKU_LETSENCRYPT_EMAIL=${data.sslemail}`
-                        );
-                        sendCommand(`dokku letsencrypt:enable ${data.appname}`);
-                      }
-                      sendCommand(`rm -rf ~/${data.appname}`);
+                      sendCommand(`dokku letsencrypt:enable ${data.appname}`);
                     }
-                  } else {
-                    cleanup();
+                    sendCommand(`rm -rf ~/${data.appname}`);
                   }
                 } else {
                   cleanup();
