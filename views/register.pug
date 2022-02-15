@@ -3,22 +3,22 @@ extends layout
 block content
   .container
     h1 Register
-    
-    p By registering and using our application you are agreeing to not use it for anything malicious or harmful to any persons. We reserve the right to cancel your account on this service at any time without notice. This is a public beta the full version will likely not be free. there is also a limitation of 4 apps per account please contact us for custom resource limitations and application count limitations.
-    form(method='POST', action='/register')
-      #form-group
-        label Username:
-        input.form-control(name='user', type='name' required)
-        label Password:
-        input.form-control(name='password',type='password' required)
-        label Confirm Password:
-        input.form-control(name='password2',type='password' required)
-        label SSH PUB Key 
-        textarea.form-control(name='pubkey',type='password' required)
-      br
-      input.btn.btn-primary(type='submit',value='Submit')
+    .card.shadow-lg
+      p By registering and using our application you are agreeing to not use it for anything malicious or harmful to any persons. We reserve the right to cancel your account on this service at any time without notice. This is a public beta the full version will likely not be free. there is also a limitation of 4 apps per account please contact us for custom resource limitations and application count limitations.
+      form(method='POST', action='/register')
+        #form-group
+          label Username:
+          input.form-control(name='user', type='name' required)
+          label Password:
+          input.form-control(name='password',type='password' required)
+          label Confirm Password:
+          input.form-control(name='password2',type='password' required)
+          label SSH PUB Key 
+          textarea.form-control(name='pubkey',type='password' required)
+        br
+        input.btn.btn-primary(type='submit',value='Submit')
 
-    br
-    br
-    p Have An Account? 
-    a(href="/login").btn.btn-primary Login
+      br
+      br
+      p Have An Account? 
+      a(href="/login").btn.btn-primary Login

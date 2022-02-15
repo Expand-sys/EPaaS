@@ -289,7 +289,7 @@ fastify.ready().then(async () => {
                         );
                         sendCommand(`dokku letsencrypt:enable ${data.appname}`);
                       }
-                      sendCommand(`rm -rf ~/${data.appname}`);
+                      sendCommand(`rm -rf ${data.appname}`);
                     }
                   } else {
                     cleanup();
