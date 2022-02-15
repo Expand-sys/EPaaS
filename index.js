@@ -214,6 +214,7 @@ fastify.ready().then(async () => {
               `dokku ${data.database}:create ${data.appname}-db && dokku ${data.database}:link ${data.appname}-db ${data.appname}`
             );
           }
+          console.log(await sendCommand(`dokku apps:create ${data.appname}`));
           if (
             (await sendCommand(`dokku apps:create ${data.appname}`)) == true
           ) {
@@ -310,7 +311,7 @@ async function sendCommand(command, username) {
                   console.log(
                     "Stream :: close :: code: " + code + ", signal: " + signal
                   );
-                  if (code >= 1) {
+                  if (code <= 1) {
                     resolve(true);
                   } else {
                     resolve(false);
