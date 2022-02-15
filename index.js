@@ -282,8 +282,14 @@ fastify.ready().then(async () => {
                 } else {
                   cleanup();
                 }
+              } else {
+                cleanup();
               }
+            } else {
+              sendCommand(`rm -rf ${data.appname}`);
             }
+          } else {
+            cleanup();
           }
         }
       }
