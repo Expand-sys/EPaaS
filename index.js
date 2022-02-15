@@ -214,7 +214,6 @@ fastify.ready().then(async () => {
               `dokku ${data.database}:create ${data.appname}-db && dokku ${data.database}:link ${data.appname}-db ${data.appname}`
             );
           }
-          console.log(await sendCommand(`dokku apps:create ${data.appname}`));
           if (
             (await sendCommand(`dokku apps:create ${data.appname}`)) == true
           ) {
@@ -281,7 +280,7 @@ fastify.ready().then(async () => {
                       );
                       fastify.io.emit(
                         "deployout",
-                        `Please add a CNAME record from ${data.domain} to core.epaas.cx`
+                        `Please add a CNAME record from ${data.domain} to eu.epaas.cx or an A record to 162.55.100.40`
                       );
                       if (data.ssl) {
                         sendCommand(
