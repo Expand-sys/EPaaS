@@ -297,56 +297,55 @@ async function sendCommand(command, username) {
   let output;
   const promise = new Promise(async (resolve, reject) => {
     if (!command.includes(";")) {
+      console.log(command);
       const conn = new Client();
-
-      conn
-        .on("ready", async () => {
-          console.log("Client :: ready");
-
-          let child = await sshexec(
-            {
-              command: command,
-              ssh: conn
-            },
-            (err, stdout, stderr, code) => {
-              console.info(stdout);
-            }
-          );
-
-          child.on("ready", async () => {
+      try {
+        conn
+          .on("ready", () => {
             console.log("SSH Client Ready");
-            child.stdout.on("data", function(data) {
-              console.info(data);
-              fastify.io.emit("deployout", "" + data);
+            conn.exec(`${command}`, (err, stream) => {
+              if (err) throw err;
+              stream
+                .on("close", (code, signal) => {
+                  console.log(
+                    "Stream :: close :: code: " + code + ", signal: " + signal
+                  );
+                  if (code >= 1) {
+                    resolve(true);
+                  } else {
+                    resolve(false);
+                  }
+                  conn.end();
+                })
+                .on("data", data => {
+                  console.log("STDOUT: " + data);
+                  fastify.io.emit("online");
+                  fastify.io.emit("deployout", "" + data);
+                })
+                .stderr.on("data", data => {
+                  console.log("STDERR: " + data);
+                  fastify.io.emit("offline");
+                  fastify.io.emit("error", data);
+                });
             });
-            child.stderr.on("data", function(data) {
-              console.error(data);
-              fastify.io.emit("deployout", "" + data);
-            });
-            child.on("exit", function(code) {
-              console.info("Exit", code);
-
-              if (code >= 1) {
-                resolve(false);
-              } else {
-                resolve(true);
-              }
-            });
+          })
+          .connect({
+            host: `${process.env.DOKKUHOST}`,
+            port: 22,
+            username: `root`,
+            privateKey: fs.readFileSync(`${process.env.HOMEDIR}/.ssh/id_rsa`)
           });
-        })
-        .connect({
-          host: `${process.env.DOKKUHOST}`,
-          port: 22,
-          username: `root`,
-          privateKey: fs.readFileSync(`${process.env.HOMEDIR}/.ssh/id_rsa`),
-          readyTimeout: 200000
-        });
+      } catch (err) {
+        console.log(err);
+        fastify.io.emit("offline");
+      }
     } else {
       fastify.io.emit("data", "Nice Try Batman, Sanitizing input...");
       let newCommand = command.split(";")[0];
       console.log(newCommand);
     }
   });
+
   return promise;
   promise.catch(() => null);
 }
