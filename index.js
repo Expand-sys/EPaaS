@@ -275,14 +275,14 @@ fastify.ready().then(async () => {
                       sendCommand(
                         `dokku domains:add ${data.appname} ${data.domain}`
                       );
-                      sendCommand(
-                        `dokku domains:remove ${data.appname} ${data.appname}.epaas.cx`
-                      );
                       fastify.io.emit(
                         "deployout",
                         `Please add a CNAME record from ${data.domain} to eu.epaas.cx or an A record to 162.55.100.40`
                       );
                       if (data.ssl) {
+                        sendCommand(
+                          `dokku domains:remove ${data.appname} ${data.appname}.epaas.cx`
+                        );
                         sendCommand(
                           `dokku config:set --no-restart ${data.appname} DOKKU_LETSENCRYPT_EMAIL=${data.sslemail}`
                         );
