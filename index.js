@@ -319,13 +319,11 @@ async function sendCommand(command, username) {
                 })
                 .on("data", data => {
                   console.log("STDOUT: " + data);
-                  fastify.io.emit("online");
                   fastify.io.emit("deployout", "" + data);
                 })
                 .stderr.on("data", data => {
                   console.log("STDERR: " + data);
-                  fastify.io.emit("offline");
-                  fastify.io.emit("error", data);
+                  fastify.io.emit("deployout", "" + data);
                 });
             });
           })
